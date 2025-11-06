@@ -53,9 +53,9 @@ public class ImageMenuPane extends StackPane {
         // Approximate slab bounds (tuned to provided artwork). Adjust easily here.
         // Right-side tombstone region, three slabs stacked.
         // x: 58%..93%, y slices for each row.
-    rSignIn = rect(0.58, 0.33, 0.35, 0.14);
-    rSignUp = rect(0.58, 0.49, 0.35, 0.14);
-    rExit   = rect(0.58, 0.66, 0.35, 0.14);
+    rSignIn = rect(0.52, 0.33, 0.35, 0.14);
+    rSignUp = rect(0.52, 0.45, 0.35, 0.14);
+    rExit   = rect(0.52, 0.56, 0.35, 0.14);
 
         view = new ImageView(baseImg);
         view.setPreserveRatio(false);
