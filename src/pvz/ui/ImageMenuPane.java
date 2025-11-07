@@ -13,10 +13,22 @@ import java.util.Objects;
 
 /**
  * Image-based main menu pane that swaps background on hover.
- * - Default: menu_bg.jpg
- * - Hover: hover1.jpg (Sign In), hover2.jpg (Sign Up), hover3.jpg (Exit)
- * Hotspots are defined as normalized rectangles (0..1) and scale with the image.
- * Press F2 (from parent Scene) to toggle a debug overlay.
+ *
+ * Behavior
+ * - Default image: menu_bg.jpg
+ * - Hover images: hover1.jpg (Sign In), hover2.jpg (Sign Up), hover3.jpg (Exit)
+ * - Three invisible hotspots sit over the stone slabs; when the mouse is inside a
+ *   hotspot, the corresponding hover image is shown and the cursor becomes a hand;
+ *   clicking triggers the provided handler.
+ *
+ * Coordinates
+ * - Hotspots are defined as normalized rectangles (x,y,w,h in 0..1) so they scale
+ *   with the underlying image dimensions. Adjust the numbers to move/resize a slab:
+ *     x -> left/right, y -> up/down, w -> width, h -> height.
+ *
+ * Debugging
+ * - If the scene sets debug=true via setDebug, an overlay draws colored rectangles
+ *   to visualize hotspot bounds (LIME=SignIn, CYAN=SignUp, ORANGE=Exit).
  */
 public class ImageMenuPane extends StackPane {
     public interface Handler {
@@ -25,9 +37,13 @@ public class ImageMenuPane extends StackPane {
         void onExit();
     }
 
+    /** Base background image. */
     private final Image baseImg;
+    /** Hover image for the Sign In slab. */
     private final Image hover1; // Sign In
+    /** Hover image for the Sign Up slab. */
     private final Image hover2; // Sign Up
+    /** Hover image for the Exit slab. */
     private final Image hover3; // Exit
 
     private final ImageView view;
@@ -42,17 +58,17 @@ public class ImageMenuPane extends StackPane {
     private Handler handler;
 
     public ImageMenuPane() {
-        baseImg = load("/pvz/images/menu_bg.jpg");
-        hover1 = load("/pvz/images/hover1.jpg");
-        hover2 = load("/pvz/images/hover2.jpg");
-        hover3 = load("/pvz/images/hover3.jpg");
+        baseImg = load("/pvz/images/menu/signin.jpg");
+        hover1 = load("/pvz/images/menu/hover1.jpg");
+        hover2 = load("/pvz/images/menu/hover2.jpg");
+        hover3 = load("/pvz/images/menu/hover3.jpg");
         if (baseImg == null || hover1 == null || hover2 == null || hover3 == null) {
             throw new IllegalStateException("Missing images under /pvz/images (menu_bg.jpg, hover1.jpg, hover2.jpg, hover3.jpg)");
         }
 
-        // Approximate slab bounds (tuned to provided artwork). Adjust easily here.
-        // Right-side tombstone region, three slabs stacked.
-        // x: 58%..93%, y slices for each row.
+    // Approximate slab bounds (tuned to provided artwork). Adjust easily here.
+    // Right-side tombstone region, three slabs stacked.
+    // x: 52%..87%, y slices for each row.
     rSignIn = rect(0.52, 0.33, 0.35, 0.14);
     rSignUp = rect(0.52, 0.45, 0.35, 0.14);
     rExit   = rect(0.52, 0.56, 0.35, 0.14);
@@ -79,9 +95,8 @@ public class ImageMenuPane extends StackPane {
                 case 3 -> { view.setImage(hover3); setCursor(Cursor.HAND); }
                 default -> { view.setImage(baseImg); setCursor(Cursor.DEFAULT); }
             }
-            if (debug) drawOverlay();
         });
-        view.setOnMouseExited(e -> { view.setImage(baseImg); setCursor(Cursor.DEFAULT); if (debug) drawOverlay(); });
+        view.setOnMouseExited(e -> { view.setImage(baseImg); setCursor(Cursor.DEFAULT); });
         view.setOnMouseClicked(e -> {
             if (handler == null) return;
             switch (whichHotspot(e.getX(), e.getY())) {
@@ -105,15 +120,14 @@ public class ImageMenuPane extends StackPane {
         setPrefSize(baseImg.getWidth(), baseImg.getHeight());
     }
 
+    /** Register callbacks for click events. */
     public void setHandler(Handler handler) { this.handler = handler; }
 
-    public void setDebug(boolean debug) { this.debug = debug; drawOverlay(); }
-
+    /** Override the default hotpots with normalized rectangles. */
     public void setHotspotsNormalized(Rectangle2D signIn, Rectangle2D signUp, Rectangle2D exit) {
         this.rSignIn = Objects.requireNonNull(signIn);
         this.rSignUp = Objects.requireNonNull(signUp);
         this.rExit = Objects.requireNonNull(exit);
-        drawOverlay();
     }
 
     private int whichHotspot(double x, double y) {
@@ -123,6 +137,7 @@ public class ImageMenuPane extends StackPane {
         return 0;
     }
 
+    /** Return true if (x,y) in pixels lies inside normalized rect r. */
     private boolean containsNormalized(Rectangle2D r, double x, double y) {
         double iw = baseImg.getWidth(), ih = baseImg.getHeight();
         double rx = r.getMinX() * iw;
@@ -132,26 +147,13 @@ public class ImageMenuPane extends StackPane {
         return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
     }
 
-    private void drawOverlay() {
-        GraphicsContext g = overlay.getGraphicsContext2D();
-        g.clearRect(0, 0, overlay.getWidth(), overlay.getHeight());
-        if (!debug) return;
-        drawRect(g, rSignIn, Color.LIME);
-        drawRect(g, rSignUp, Color.CYAN);
-        drawRect(g, rExit,   Color.ORANGE);
-    }
-
-    private void drawRect(GraphicsContext g, Rectangle2D r, Color c) {
-        g.setStroke(c); g.setLineWidth(2);
-        double iw = baseImg.getWidth(), ih = baseImg.getHeight();
-        g.strokeRect(r.getMinX()*iw, r.getMinY()*ih, r.getWidth()*iw, r.getHeight()*ih);
-    }
-
+    /** Load an image from classpath, returning null if not found. */
     private Image load(String path) {
         var in = getClass().getResourceAsStream(path);
         return in == null ? null : new Image(in);
     }
 
+    /** Helper to build a normalized rectangle. */
     private Rectangle2D rect(double x, double y, double w, double h) {
         return new Rectangle2D(x, y, w, h);
     }
