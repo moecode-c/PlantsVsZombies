@@ -40,9 +40,9 @@ public class AuthFormPane extends StackPane {
 
     // Normalized placements tuned to the provided artwork (adjust if needed)
     // These values were tweaked to sit inside the inner slots and the bottom bar.
-    private Rectangle2D rUser   = rect(0.305, 0.355, 0.39, 0.105);
-    private Rectangle2D rPass   = rect(0.305, 0.505, 0.39, 0.105);
-    private Rectangle2D rBack   = rect(0.355, 0.730, 0.29, 0.105);
+    private Rectangle2D rUser   = rect(0.32, 0.34, 0.99, 0.2);
+    private Rectangle2D rPass   = rect(0.32, 0.48, 0.99, 0.2);
+    private Rectangle2D rBack   = rect(0.3, 0.650, 1, 0.105);
 
     public AuthFormPane(Mode mode) {
         this.mode = mode;
@@ -74,9 +74,9 @@ public class AuthFormPane extends StackPane {
         password.setPromptText("Password");
         password.setStyle("-fx-background-color: rgba(0,0,0,0.25); -fx-text-fill: white; -fx-prompt-text-fill: rgba(255,255,255,0.6); -fx-font-size: 16px; -fx-background-radius: 6;");
         
-    backButton = new Button("BACK TO MAIN MENU");
+    backButton = new Button("                                                     ");
     backButton.setFocusTraversable(false);
-    backButton.setStyle("-fx-background-color: transparent; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px;");
+    backButton.setStyle("-fx-background-color: transparent; -fx-text-fill: white;-fx-font-weight: bold; -fx-font-size: 16px;");
     backButton.setOnMouseEntered(e -> setCursor(Cursor.HAND));
     backButton.setOnMouseExited(e -> setCursor(Cursor.DEFAULT));
     backButton.setOnAction(e -> back());
