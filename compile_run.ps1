@@ -67,6 +67,7 @@ Get-ChildItem -Path $fx -Filter 'javafx-*.jar' | ForEach-Object { Write-Verbose 
 $src = @(
     'src\pvz\model\Player.java',
     'src\pvz\model\PlayerStore.java',
+    'src\pvz\ui\AuthFormPane.java',
     'src\pvz\ui\ImageMenuPane.java',
     'src\pvz\ui\ImageMenuPane.java',
     'src\pvz\Main.java'

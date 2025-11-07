@@ -3,6 +3,10 @@ package pvz;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.Pane;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -11,6 +15,7 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import pvz.model.PlayerStore;
 import pvz.ui.ImageMenuPane;
+import pvz.ui.AuthFormPane;
 
 /**
  * Application entry point. Shows the image-based main menu and opens small
@@ -28,17 +33,20 @@ public class Main extends Application {
     public void start(Stage stage) {
         store.load();
 
+        // Root stack so we can overlay the auth form as a popover above the menu
+        StackPane root = new StackPane();
         // Menu draws the background and handles hover image swapping.
         ImageMenuPane menu = new ImageMenuPane();
+        root.getChildren().add(menu);
         // Wire up click callbacks from hotspots (Sign In / Sign Up / Exit)
         menu.setHandler(new ImageMenuPane.Handler() {
-            @Override public void onSignIn() { showSignIn(); }
-            @Override public void onSignUp() { showSignUp(); }
+            @Override public void onSignIn() { showAuth(root, AuthFormPane.Mode.SIGN_IN); }
+            @Override public void onSignUp() { showAuth(root, AuthFormPane.Mode.SIGN_UP); }
             @Override public void onExit() { Platform.exit(); }
         });
 
         // Size the window to exactly match the image so the overlay is pixel-perfect
-        Scene scene = new Scene(menu, menu.getPrefWidth(), menu.getPrefHeight());
+        Scene scene = new Scene(root, menu.getPrefWidth(), menu.getPrefHeight());
         
 
         stage.setScene(scene);
@@ -53,53 +61,42 @@ public class Main extends Application {
         Alert a = new Alert(t, msg); a.setHeaderText(null); a.showAndWait();
     }
 
-    /** Build and show the Sign Up dialog (minimal form). */
-    private void showSignUp() {
-        Stage dialog = new Stage();
-        TextField user = new TextField();
-        PasswordField pw = new PasswordField();
-        var create = new javafx.scene.control.Button("Create");
-        create.setOnAction(e -> {
-            boolean ok = store.createAccount(user.getText().trim(), pw.getText());
-            show(ok ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR,
-                    ok ? "Account created" : "Could not create (exists or blank)");
+    private void showAuth(StackPane root, AuthFormPane.Mode mode) {
+        // Dimmer to block clicks to the menu and give a popover feel
+        Pane dim = new Pane();
+        dim.setStyle("-fx-background-color: rgba(0,0,0,0.45);");
+        dim.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        dim.prefWidthProperty().bind(root.widthProperty());
+        dim.prefHeightProperty().bind(root.heightProperty());
+        dim.setOnMouseClicked(e -> {}); // consume clicks
+
+        AuthFormPane form = new AuthFormPane(mode);
+        form.setHandler(new AuthFormPane.Handler() {
+            @Override public void onSubmit(String username, String password) {
+                boolean ok = switch (mode) {
+                    case SIGN_IN -> store.signIn(username, password);
+                    case SIGN_UP -> store.createAccount(username, password);
+                };
+                if (ok) {
+                    if (mode == AuthFormPane.Mode.SIGN_UP) {
+                        // Optionally sign in immediately after creating an account
+                        store.signIn(username, password);
+                    }
+                    show(Alert.AlertType.INFORMATION, (mode==AuthFormPane.Mode.SIGN_IN?"Signed in":"Account created") + " successfully.");
+                    root.getChildren().removeAll(dim, form);
+                } else {
+                    show(Alert.AlertType.ERROR, mode==AuthFormPane.Mode.SIGN_IN ? "Invalid username or password." : "Username exists or invalid.");
+                }
+            }
+            @Override public void onBack() { root.getChildren().removeAll(dim, form); }
         });
-        GridPane g = new GridPane();
-        g.setHgap(8); g.setVgap(10); g.setStyle("-fx-padding: 16;");
-        int r = 0;
-        g.add(new Label("Sign Up"), 0, r++);
-        g.add(new Label("Username:"), 0, r); g.add(user, 1, r++);
-        g.add(new Label("Password:"), 0, r); g.add(pw, 1, r++);
-        g.add(create, 1, r);
-        dialog.setScene(new Scene(g));
-        dialog.setTitle("Sign Up");
-        dialog.setResizable(false);
-        dialog.show();
+        // Add on top of the menu as a popover
+        root.getChildren().addAll(dim, form);
+        StackPane.setAlignment(form, Pos.CENTER);
+        form.requestFocus(); // so ENTER works immediately
     }
 
-    /** Build and show the Sign In dialog (minimal form). */
-    private void showSignIn() {
-        Stage dialog = new Stage();
-        TextField user = new TextField();
-        PasswordField pw = new PasswordField();
-        var login = new javafx.scene.control.Button("Login");
-        login.setOnAction(e -> {
-            boolean ok = store.signIn(user.getText().trim(), pw.getText());
-            show(ok ? Alert.AlertType.INFORMATION : Alert.AlertType.ERROR,
-                    ok ? ("Welcome, " + user.getText().trim()) : "Invalid credentials");
-        });
-        GridPane g = new GridPane();
-        g.setHgap(8); g.setVgap(10); g.setStyle("-fx-padding: 16;");
-        int r = 0;
-        g.add(new Label("Sign In"), 0, r++);
-        g.add(new Label("Username:"), 0, r); g.add(user, 1, r++);
-        g.add(new Label("Password:"), 0, r); g.add(pw, 1, r++);
-        g.add(login, 1, r);
-        dialog.setScene(new Scene(g));
-        dialog.setTitle("Sign In");
-        dialog.setResizable(false);
-        dialog.show();
-    }
+    
 
     public static void main(String[] args) { launch(args); }
 }
