@@ -39,10 +39,6 @@ public class PlayerStore {
         try { Files.createDirectories(DATA_DIR); } catch (IOException ignored) { }
     }
 
-    /**
-     * Create a new account and append it to users.txt.
-     * @return true if created; false if username is blank or already exists.
-     */
     public synchronized boolean createAccount(String username, String password) {
         if (username == null || username.isBlank()) return false;
         // Load from disk if needed so duplicate checks are accurate
@@ -73,10 +69,6 @@ public class PlayerStore {
         return true;
     }
 
-    /**
-     * Attempt to sign in; on success writes session.txt with the username.
-     * @return true on success and sets the current user.
-     */
     public synchronized boolean signIn(String username, String password) {
         load();
         Player p = users.get(username);
@@ -98,13 +90,7 @@ public class PlayerStore {
         current = null;
         try { Files.deleteIfExists(SESSION_FILE); } catch (IOException ignored) { }
     }
-
-    /**
-     * Delete an account (requires matching username+password).
-     * - Removes the user line from users.txt by rewriting the file.
-     * - If the deleted user was signed in, this also signs out.
-     * @return true if a user was deleted; false if credentials didn't match.
-     */
+    
     public synchronized boolean deleteAccount(String username, String password) {
         load();
         Player p = users.get(username);

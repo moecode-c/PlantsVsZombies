@@ -48,7 +48,6 @@ public class ImageMenuPane extends StackPane {
 
     private final ImageView view;
     private final Canvas overlay;
-    private boolean debug;
 
     // Normalized hotspot rects (x,y,w,h in 0..1)
     private Rectangle2D rSignIn;
@@ -97,6 +96,7 @@ public class ImageMenuPane extends StackPane {
             }
         });
         view.setOnMouseExited(e -> { view.setImage(baseImg); setCursor(Cursor.DEFAULT); });
+
         view.setOnMouseClicked(e -> {
             if (handler == null) return;
             switch (whichHotspot(e.getX(), e.getY())) {
@@ -123,12 +123,6 @@ public class ImageMenuPane extends StackPane {
     /** Register callbacks for click events. */
     public void setHandler(Handler handler) { this.handler = handler; }
 
-    /** Override the default hotpots with normalized rectangles. */
-    public void setHotspotsNormalized(Rectangle2D signIn, Rectangle2D signUp, Rectangle2D exit) {
-        this.rSignIn = Objects.requireNonNull(signIn);
-        this.rSignUp = Objects.requireNonNull(signUp);
-        this.rExit = Objects.requireNonNull(exit);
-    }
 
     private int whichHotspot(double x, double y) {
         if (containsNormalized(rSignIn, x, y)) return 1;
