@@ -19,14 +19,14 @@ Use the provided PowerShell script which auto-detects your JavaFX SDK:
 If it can’t find JavaFX, set an environment variable pointing to the SDK root (the folder that contains `lib\javafx-controls.jar`):
 
 ```powershell
-setx JAVAFX_HOME C:\javafx-sdk-21
+setx JAVAFX_HOME C:\javafx-sdk-23.0.2
 ```
 Open a new PowerShell window after setting it, then run the script again.
 
 ## Manual Compile/Run (Classpath Approach)
 
 ```powershell
-$fx = "C:\javafx-sdk-21\lib"  # adjust if your SDK is elsewhere
+$fx = "C:\javafx-sdk-23.0.2\lib"  # adjust if your SDK is elsewhere
 
 javac -cp "$fx\*" -d bin src\pvz\model\Player.java src\pvz\model\PlayerStore.java src\pvz\Main.java
 java  -cp "bin;$fx\*" pvz.Main
