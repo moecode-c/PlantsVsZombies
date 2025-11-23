@@ -1,6 +1,6 @@
 package pvz;
 
-import javax.swing.plaf.synth.Region;
+import javafx.scene.layout.Region;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -63,7 +63,8 @@ public class Main extends Application {
         // Dimmer to block clicks to the menu and give a popover feel
         Pane dim = new Pane();
         dim.setStyle("-fx-background-color: rgba(0,0,0,0.45);");
-        dim.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        // Use Double.MAX_VALUE to allow the Pane to grow to fill available space
+        dim.setMinSize(Double.MAX_VALUE, Double.MAX_VALUE);
         dim.prefWidthProperty().bind(root.widthProperty());
         dim.prefHeightProperty().bind(root.heightProperty());
         dim.setOnMouseClicked(e -> {}); // consume clicks
@@ -75,6 +76,7 @@ public class Main extends Application {
                     case SIGN_IN -> store.signIn(username, password);
                     case SIGN_UP -> store.createAccount(username, password);
                 };
+                System.out.println("DEBUG: mode=" + mode + ", username=" + username + ", password=" + password + ", ok=" + ok);
                 if (ok) {
                     if (mode == AuthFormPane.Mode.SIGN_UP) {
                         // Optionally sign in immediately after creating an account
@@ -82,12 +84,13 @@ public class Main extends Application {
                     }
                     show(Alert.AlertType.INFORMATION, (mode==AuthFormPane.Mode.SIGN_IN?"Signed in":"Account created") + " successfully.");
                     root.getChildren().removeAll(dim, form);
-                    
                     // If signed in, show game menu
                     if (mode == AuthFormPane.Mode.SIGN_IN || mode == AuthFormPane.Mode.SIGN_UP) {
+                        System.out.println("DEBUG: Showing game menu for " + username);
                         showGameMenu(root, stage, username);
                     }
                 } else {
+                    System.out.println("DEBUG: Sign-in or sign-up failed for " + username);
                     show(Alert.AlertType.ERROR, mode==AuthFormPane.Mode.SIGN_IN ? "Invalid username or password." : "Username exists or invalid.");
                 }
             }
@@ -108,17 +111,7 @@ public class Main extends Application {
         
         // Enable debug mode to see hotspot positions - press F2 to toggle
         gameMenu.setDebug(true);
-        
-        // Adjust hotspots for Lenovo LOQ 15 (15.6-inch)
-        // These are SEPARATE button hotspots at the bottom
-        gameMenu.setHotspotsNormalized(
-            new javafx.geometry.Rectangle2D(0.25, 0.28, 0.50, 0.10),  // Play button (center)
-            new javafx.geometry.Rectangle2D(0.25, 0.42, 0.50, 0.10),  // Options button (center)
-            new javafx.geometry.Rectangle2D(0.25, 0.56, 0.50, 0.10),  // More button (center)
-            new javafx.geometry.Rectangle2D(0.02, 0.82, 0.28, 0.12),  // Logout button (bottom left)
-            new javafx.geometry.Rectangle2D(0.36, 0.82, 0.28, 0.12),  // Delete Account button (bottom center)
-            new javafx.geometry.Rectangle2D(0.70, 0.82, 0.28, 0.12)   // Exit button (bottom right)
-        );
+
         
         // Adjust username position (x, y in pixels, fontSize, color)
         gameMenu.setUsernamePosition(55, 100, 18, javafx.scene.paint.Color.WHITE);

@@ -36,6 +36,21 @@ If you see `module not found: javafx.controls` you used the module flags but the
 
 ## Resetting State
 
+## save command
+
+javac --module-path "D:\javafx-sdk-23.0.2\lib" --add-modules javafx.controls,javafx.graphics -d bin `
+  src\pvz\model\Player.java `
+  src\pvz\model\PlayerStore.java `
+  src\pvz\ui\AuthFormPane.java `
+  src\pvz\ui\ImageMenuPane.java `
+  src\pvz\ui\GameMenuPane.java `
+  src\pvz\Main.java
+
+## run command
+
+java --module-path "$fx" --add-modules javafx.controls,javafx.graphics -cp bin pvz.Main
+
+
 All data is in memory. Restarting the app clears users.
 
 ## Disclaimer

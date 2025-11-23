@@ -2,13 +2,12 @@ package pvz.ui;
 
 import java.util.Objects;
 
-import javax.swing.text.html.ImageView;
-
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -62,17 +61,17 @@ public class GameMenuPane extends StackPane {
 
         if (baseImg == null || hoverPlay == null || hoverOptions == null ||
                 hoverMore == null || hoverExit == null) {
-            throw new IllegalStateException("Missing game menu images under /pvz/images");
+            throw new IllegalStateException("Missing game menu images under /pvz/images/menu");
         }
 
-        // Normalized hotspots (0..1)
-        rPlay    = rect(0.518, 0.333, 0.363, 0.122);
-        rOptions = rect(0.514, 0.474, 0.348, 0.104);
-        rExit    = rect(0.523, 0.592, 0.318, 0.104);
-        rMore    = rect(0.482, 0.755, 0.132, 0.123);
-        rLogout  = rect(0.714, 0.799, 0.085, 0.080);
-        rDelete  = rect(0.812, 0.839, 0.058, 0.080);
-        rExit2   = rect(0.900, 0.818, 0.065, 0.024);
+        // Updated hotspots based on your pixel-to-normalized calculations
+        rPlay    = rect(0.52, 0.33, 0.36, 0.12);  // Play button
+        rOptions = rect(0.51, 0.47, 0.35, 0.10);  // Options button
+        rExit    = rect(0.52, 0.59, 0.32, 0.10);  // Exit (top)
+        rMore    = rect(0.48, 0.75, 0.13, 0.12);  // More button
+        rLogout  = rect(0.71, 0.80, 0.08, 0.08);  // Logout button
+        rDelete  = rect(0.81, 0.84, 0.06, 0.08);  // Delete button
+        rExit2   = rect(0.90, 0.82, 0.06, 0.02);  // Exit (bottom)
 
         usernameX = 55;
         usernameY = 120;
