@@ -114,7 +114,21 @@ public class GameMenuPane extends StackPane {
             if (handler == null) return;
             int which = whichHotspot(e.getX(), e.getY());
             switch (which) {
-                case 1 -> handler.onPlay();
+                case 1 -> {
+                    // Draw play menu image on overlay
+                    GraphicsContext gc = overlay.getGraphicsContext2D();
+                    gc.clearRect(0, 0, overlay.getWidth(), overlay.getHeight());
+                    gc.setFill(usernameColor);
+                    gc.setFont(Font.font("Arial", FontWeight.BOLD, usernameSize));
+                    gc.fillText(playerUsername, usernameX, usernameY);
+                    java.net.URL url = getClass().getResource("/pvz/images/menu/playmenu_bg.png");
+                    if (url != null) {
+                        Image playImg = new Image(url.toString());
+                        gc.drawImage(playImg, 120, 100, 600, 400); // Centered overlay
+                    } else {
+                        System.err.println("ERROR: playmenu_bg.png not found at /pvz/images/menu/playmenu_bg.png");
+                    }
+                }
                 case 2 -> handler.onOptions();
                 case 3 -> handler.onMore();
                 case 5 -> handler.onLogout();

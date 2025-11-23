@@ -109,7 +109,6 @@ public class Main extends Application {
     }
 
     private void showGameMenu(StackPane root, Stage stage, String username) {
-        stopMenuMusic();
         // Clear the root and show game menu
         root.getChildren().clear();
         GameMenuPane gameMenu = new GameMenuPane(username);
@@ -118,7 +117,7 @@ public class Main extends Application {
         gameMenu.setUsernamePosition(55, 100, 18, javafx.scene.paint.Color.WHITE);
         gameMenu.setHandler(new GameMenuPane.Handler() {
             @Override public void onPlay() {
-                show(Alert.AlertType.INFORMATION, "Play feature coming soon!");
+                // Play image is now shown directly in GameMenuPane
             }
             @Override public void onOptions() {
                 show(Alert.AlertType.INFORMATION, "Options feature coming soon!");
@@ -144,6 +143,7 @@ public class Main extends Application {
                         @Override public void onSignUp() { showAuth(root, stage, AuthFormPane.Mode.SIGN_UP); }
                         @Override public void onExit() { Platform.exit(); }
                     });
+                    playMenuMusic();
                     show(Alert.AlertType.INFORMATION, "Logged out successfully.");
                 }
             }
@@ -168,6 +168,7 @@ public class Main extends Application {
                             @Override public void onSignUp() { showAuth(root, stage, AuthFormPane.Mode.SIGN_UP); }
                             @Override public void onExit() { Platform.exit(); }
                         });
+                        playMenuMusic();
                     } else {
                         show(Alert.AlertType.ERROR, "Failed to delete account.");
                     }
