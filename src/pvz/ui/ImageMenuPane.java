@@ -11,25 +11,6 @@ import javafx.scene.paint.Color;
 
 import java.util.Objects;
 
-/**
- * Image-based main menu pane that swaps background on hover.
- *
- * Behavior
- * - Default image: menu_bg.jpg
- * - Hover images: hover1.jpg (Sign In), hover2.jpg (Sign Up), hover3.jpg (Exit)
- * - Three invisible hotspots sit over the stone slabs; when the mouse is inside a
- *   hotspot, the corresponding hover image is shown and the cursor becomes a hand;
- *   clicking triggers the provided handler.
- *
- * Coordinates
- * - Hotspots are defined as normalized rectangles (x,y,w,h in 0..1) so they scale
- *   with the underlying image dimensions. Adjust the numbers to move/resize a slab:
- *     x -> left/right, y -> up/down, w -> width, h -> height.
- *
- * Debugging
- * - If the scene sets debug=true via setDebug, an overlay draws colored rectangles
- *   to visualize hotspot bounds (LIME=SignIn, CYAN=SignUp, ORANGE=Exit).
- */
 public class ImageMenuPane extends StackPane {
     public interface Handler {
         void onSignIn();

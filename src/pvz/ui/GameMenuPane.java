@@ -32,7 +32,6 @@ public class GameMenuPane extends StackPane {
 
     private final ImageView view;
     private final Canvas overlay;
-    private boolean debug;
 
     private Rectangle2D rPlay;
     private Rectangle2D rOptions;
@@ -104,13 +103,11 @@ public class GameMenuPane extends StackPane {
                 case 5, 6, 7 -> { view.setImage(baseImg); setCursor(Cursor.HAND); }
                 default -> { view.setImage(baseImg); setCursor(Cursor.DEFAULT); }
             }
-            if (debug) redrawDebugOverlay();
         });
 
         view.setOnMouseExited(e -> {
             view.setImage(baseImg);
             setCursor(Cursor.DEFAULT);
-            if (debug) redrawDebugOverlay();
         });
 
         view.setOnMouseClicked(e -> {
@@ -138,38 +135,6 @@ public class GameMenuPane extends StackPane {
         gc.fillText(playerUsername, usernameX, usernameY);
     }
 
-    private void redrawDebugOverlay() {
-        GraphicsContext gc = overlay.getGraphicsContext2D();
-        gc.clearRect(0, 0, overlay.getWidth(), overlay.getHeight());
-
-        drawDebugRect(gc, rPlay, Color.LIME, "Play");
-        drawDebugRect(gc, rOptions, Color.CYAN, "Options");
-        drawDebugRect(gc, rMore, Color.ORANGE, "More");
-        drawDebugRect(gc, rLogout, Color.RED, "Logout");
-        drawDebugRect(gc, rDelete, Color.YELLOW, "Delete");
-        drawDebugRect(gc, rExit, Color.MAGENTA, "Exit");
-
-        drawUsernameOnOverlay();
-    }
-
-    // FIXED: now uses actual ImageView size
-    private void drawDebugRect(GraphicsContext gc, Rectangle2D r, Color color, String label) {
-        double iw = view.getBoundsInParent().getWidth();
-        double ih = view.getBoundsInParent().getHeight();
-
-        double rx = r.getMinX() * iw;
-        double ry = r.getMinY() * ih;
-        double rw = r.getWidth() * iw;
-        double rh = r.getHeight() * ih;
-
-        gc.setStroke(color);
-        gc.setLineWidth(2);
-        gc.strokeRect(rx, ry, rw, rh);
-
-        gc.setFill(color);
-        gc.setFont(Font.font("Arial", 10));
-        gc.fillText(label, rx + 5, ry + 15);
-    }
 
     private void resizeToImage() {
         // View is fixed at 800x598 with preserveRatio=true
@@ -180,11 +145,6 @@ public class GameMenuPane extends StackPane {
         this.handler = handler;
     }
 
-    public void setDebug(boolean debug) {
-        this.debug = debug;
-        if (debug) redrawDebugOverlay();
-        else drawUsernameOnOverlay();
-    }
 
     /**
      * Set custom hotspot positions (normalized coordinates 0..1)

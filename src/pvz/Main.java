@@ -1,15 +1,17 @@
 package pvz;
 
-import javafx.scene.layout.Region;
-
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.paint.Color;
 import pvz.model.PlayerStore;
 import pvz.ui.AuthFormPane;
 import pvz.ui.GameMenuPane;
@@ -24,11 +26,14 @@ import pvz.ui.ImageMenuPane;
  *   hotspot bounds while tuning.
  */
 public class Main extends Application {
+        private MediaPlayer menuMusicPlayer;
     private final PlayerStore store = new PlayerStore();
-    private boolean debug = false;
+    private boolean debug = true;
 
     @Override
     public void start(Stage stage) {
+            // Play menu music
+            playMenuMusic();
         store.load();
 
         // Root stack so we can overlay the auth form as a popover above the menu
@@ -60,6 +65,7 @@ public class Main extends Application {
     }
 
     private void showAuth(StackPane root, Stage stage, AuthFormPane.Mode mode) {
+            playMenuMusic();
         // Dimmer to block clicks to the menu and give a popover feel
         Pane dim = new Pane();
         dim.setStyle("-fx-background-color: rgba(0,0,0,0.45);");
@@ -103,39 +109,29 @@ public class Main extends Application {
     }
 
     private void showGameMenu(StackPane root, Stage stage, String username) {
+        stopMenuMusic();
         // Clear the root and show game menu
         root.getChildren().clear();
-        
         GameMenuPane gameMenu = new GameMenuPane(username);
         root.getChildren().add(gameMenu);
-        
-        // Enable debug mode to see hotspot positions - press F2 to toggle
-        gameMenu.setDebug(true);
-
-        
         // Adjust username position (x, y in pixels, fontSize, color)
         gameMenu.setUsernamePosition(55, 100, 18, javafx.scene.paint.Color.WHITE);
-        
         gameMenu.setHandler(new GameMenuPane.Handler() {
             @Override public void onPlay() {
                 show(Alert.AlertType.INFORMATION, "Play feature coming soon!");
             }
-            
             @Override public void onOptions() {
                 show(Alert.AlertType.INFORMATION, "Options feature coming soon!");
             }
-            
             @Override public void onMore() {
                 show(Alert.AlertType.INFORMATION, "More feature coming soon!");
             }
-            
             @Override public void onLogout() {
                 // Ask for confirmation before logging out
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setTitle("Logout");
                 confirm.setHeaderText("Logout");
                 confirm.setContentText("Are you sure you want to logout?");
-                
                 if (confirm.showAndWait().isPresent() && 
                     confirm.getResult() == javafx.scene.control.ButtonType.OK) {
                     store.signOut();
@@ -151,14 +147,12 @@ public class Main extends Application {
                     show(Alert.AlertType.INFORMATION, "Logged out successfully.");
                 }
             }
-            
             @Override public void onDeleteAccount() {
                 // Ask for confirmation before deleting account
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setTitle("Delete Account");
                 confirm.setHeaderText("Delete Account");
                 confirm.setContentText("Are you sure you want to delete your account? This cannot be undone.");
-                
                 if (confirm.showAndWait().isPresent() && 
                     confirm.getResult() == javafx.scene.control.ButtonType.OK) {
                     // Delete account from store
@@ -179,20 +173,38 @@ public class Main extends Application {
                     }
                 }
             }
-            
             @Override public void onExit() {
                 // Ask for confirmation before exiting
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setTitle("Exit");
                 confirm.setHeaderText("Exit Application");
                 confirm.setContentText("Are you sure you want to exit the application?");
-                
                 if (confirm.showAndWait().isPresent() && 
                     confirm.getResult() == javafx.scene.control.ButtonType.OK) {
                     Platform.exit();
                 }
             }
         });
+    }
+
+    // Play background music for menu/auth screens
+    private void playMenuMusic() {
+        if (menuMusicPlayer == null) {
+            try {
+                String musicPath = getClass().getResource("/pvz/music/menu_music.mp3").toString();
+                Media media = new Media(musicPath);
+                menuMusicPlayer = new MediaPlayer(media);
+                menuMusicPlayer.setCycleCount(MediaPlayer.INDEFINITE);
+            } catch (Exception e) {
+                System.err.println("Could not load menu music: " + e);
+                menuMusicPlayer = null;
+            }
+        }
+        if (menuMusicPlayer != null) menuMusicPlayer.play();
+    }
+
+    private void stopMenuMusic() {
+        if (menuMusicPlayer != null) menuMusicPlayer.stop();
     }
 
     

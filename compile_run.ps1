@@ -69,13 +69,14 @@ $src = @(
     'src\pvz\model\PlayerStore.java',
     'src\pvz\ui\AuthFormPane.java',
     'src\pvz\ui\ImageMenuPane.java',
-    'src\pvz\ui\ImageMenuPane.java',
+    'src\pvz\ui\GameMenuPane.java',
     'src\pvz\Main.java'
 )
 if (-not (Test-Path 'bin')) { New-Item -ItemType Directory -Path 'bin' | Out-Null }
 
-& javac --module-path $fx --add-modules javafx.controls -d bin @src
+& javac --module-path $fx --add-modules javafx.controls,javafx.media -d bin @src
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 
 # Ensure images are on the runtime classpath (copy resources)
 if (Test-Path 'src\pvz\images') {
@@ -84,5 +85,12 @@ if (Test-Path 'src\pvz\images') {
     Copy-Item -Path 'src\pvz\images\*' -Destination $dest -Recurse -Force
 }
 
+# Ensure music is on the runtime classpath (copy resources)
+if (Test-Path 'src\pvz\music') {
+    $dest = 'bin\pvz\music'
+    if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest | Out-Null }
+    Copy-Item -Path 'src\pvz\music\*' -Destination $dest -Recurse -Force
+}
+
 # Run
-& java --module-path $fx --add-modules javafx.controls,javafx.graphics -cp bin pvz.Main
+& java --module-path $fx --add-modules javafx.controls,javafx.graphics,javafx.media -cp bin pvz.Main
