@@ -100,7 +100,7 @@ public class GameMenuPane extends StackPane {
                 case 1 -> { view.setImage(hoverPlay); setCursor(Cursor.HAND); }
                 case 2 -> { view.setImage(hoverOptions); setCursor(Cursor.HAND); }
                 case 3 -> { view.setImage(hoverMore); setCursor(Cursor.HAND); }
-                case 4-> { view.setImage(hoverExit); setCursor(Cursor.HAND); }
+                case 4 -> { view.setImage(hoverExit); setCursor(Cursor.HAND); }
                 case 5, 6, 7 -> { view.setImage(baseImg); setCursor(Cursor.HAND); }
                 default -> { view.setImage(baseImg); setCursor(Cursor.DEFAULT); }
             }
@@ -120,9 +120,9 @@ public class GameMenuPane extends StackPane {
                 case 1 -> handler.onPlay();
                 case 2 -> handler.onOptions();
                 case 3 -> handler.onMore();
-                case 4 -> handler.onLogout();
-                case 5 -> handler.onDeleteAccount();
-                case 6, 7 -> handler.onExit();
+                case 5 -> handler.onLogout();
+                case 6 -> handler.onDeleteAccount();
+                case 4, 7 -> handler.onExit();
             }
         });
 
@@ -227,9 +227,9 @@ public class GameMenuPane extends StackPane {
         if (containsNormalized(rPlay, x, y)) return 1;
         if (containsNormalized(rOptions, x, y)) return 2;
         if (containsNormalized(rMore, x, y)) return 3;
-        if (containsNormalized(rLogout, x, y)) return 4;
-        if (containsNormalized(rDelete, x, y)) return 5;
-        if (containsNormalized(rExit, x, y)) return 6;
+        if (containsNormalized(rExit, x, y)) return 4;
+        if (containsNormalized(rLogout, x, y)) return 5;
+        if (containsNormalized(rDelete, x, y)) return 6;
         if (containsNormalized(rExit2, x, y)) return 7;
         return 0;
     }
