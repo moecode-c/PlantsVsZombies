@@ -115,9 +115,12 @@ public class GameMenuPane extends StackPane {
             int which = whichHotspot(e.getX(), e.getY());
             switch (which) {
                 case 1 -> {
-                    // Draw play menu image on overlay
+                    // Draw play menu image on overlay with heavier full-screen shadow
                     GraphicsContext gc = overlay.getGraphicsContext2D();
                     gc.clearRect(0, 0, overlay.getWidth(), overlay.getHeight());
+                    // Draw full-screen shadow (more opaque)
+                    gc.setFill(new Color(0, 0, 0, 0.7));
+                    gc.fillRect(0, 0, overlay.getWidth(), overlay.getHeight());
                     gc.setFill(usernameColor);
                     gc.setFont(Font.font("Arial", FontWeight.BOLD, usernameSize));
                     gc.fillText(playerUsername, usernameX, usernameY);
