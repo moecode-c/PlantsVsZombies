@@ -1,11 +1,13 @@
 package pvz.model;
 
 import javafx.scene.layout.Pane;
+import javafx.scene.image.ImageView;
 
 public abstract class Plant extends Thread {
     protected int cost;
     protected double waitingTime;
     protected int health;
+    protected ImageView sprite;
 
     public Plant() {}
     public Plant(int cost, double waitingTime, int health) {
