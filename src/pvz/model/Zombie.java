@@ -18,7 +18,6 @@ public abstract class Zombie extends Characters implements Runnable {
     protected double speed;
     private volatile boolean isAttacking = false;
     private volatile boolean slowed = false;
-    protected ImageView elementImage;
 
     public Zombie() {}
 
@@ -175,7 +174,9 @@ public abstract class Zombie extends Characters implements Runnable {
     }
 
     @Override
-    public abstract void appear(Pane root);
+    public void appear(Pane root) {
+        // Default no-op implementation. Specific spawning uses appear(root, x, y).
+    }
 
     public void appear(Pane root, int x, int y) {
         Platform.runLater(() -> {

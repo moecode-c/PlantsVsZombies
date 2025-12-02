@@ -4,11 +4,13 @@ import java.util.Objects;
 
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
-import javafx.scene.canvas.Canvas;
-import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.Pane;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -22,6 +24,7 @@ public class GameMenuPane extends StackPane {
         void onLogout();
         void onDeleteAccount();
         void onExit();
+        default void onLevelSelected(int level) {}
     }
 
     private final Image baseImg;
@@ -29,9 +32,13 @@ public class GameMenuPane extends StackPane {
     private final Image hoverOptions;
     private final Image hoverMore;
     private final Image hoverExit;
+    private final Image playMenuImg;
 
     private final ImageView view;
-    private final Canvas overlay;
+    private final Pane baseLayer;
+    private final Pane overlayLayer;
+    private final ImageView overlayImage;
+    private final Label usernameLabel;
 
     private Rectangle2D rPlay;
     private Rectangle2D rOptions;
@@ -41,13 +48,15 @@ public class GameMenuPane extends StackPane {
     private Rectangle2D rExit;
     private Rectangle2D rExit2;
 
+    private boolean showingLevelOverlay;
+
     private Handler handler;
     private String playerUsername;
 
-    private double usernameX;
-    private double usernameY;
-    private double usernameSize;
-    private Color usernameColor;
+    private double usernameX = 55;
+    private double usernameY = 120;
+    private double usernameSize = 18;
+    private Color usernameColor = Color.WHITE;
 
     public GameMenuPane(String username) {
         this.playerUsername = username;
@@ -57,13 +66,13 @@ public class GameMenuPane extends StackPane {
         hoverOptions = load("/pvz/images/menu/hover_options.png");
         hoverMore = load("/pvz/images/menu/hover_more.png");
         hoverExit = load("/pvz/images/menu/hover_exit.png");
+        playMenuImg = load("/pvz/images/menu/playmenu_bg.png");
 
-        if (baseImg == null || hoverPlay == null || hoverOptions == null ||
-                hoverMore == null || hoverExit == null) {
+        if (baseImg == null || hoverPlay == null || hoverOptions == null
+            || hoverMore == null || hoverExit == null) {
             throw new IllegalStateException("Missing game menu images under /pvz/images/menu");
         }
 
-        // Updated hotspots based on your pixel-to-normalized calculations
         rPlay    = rect(0.52, 0.33, 0.36, 0.12);  // Play button
         rOptions = rect(0.51, 0.47, 0.35, 0.10);  // Options button
         rExit    = rect(0.52, 0.59, 0.32, 0.10);  // Exit (top)
@@ -72,28 +81,54 @@ public class GameMenuPane extends StackPane {
         rDelete  = rect(0.81, 0.84, 0.06, 0.08);  // Delete button
         rExit2   = rect(0.90, 0.82, 0.06, 0.02);  // Exit (bottom)
 
-        usernameX = 55;
-        usernameY = 120;
-        usernameSize = 18;
-        usernameColor = Color.WHITE;
+        baseLayer = new Pane();
+        baseLayer.setPrefSize(800, 598);
 
         view = new ImageView(baseImg);
         view.setPreserveRatio(true);
         view.setFitWidth(800);
         view.setFitHeight(598);
+        baseLayer.getChildren().add(view);
 
-        overlay = new Canvas(800, 598);
-        overlay.setMouseTransparent(true);
+        usernameLabel = new Label(playerUsername);
+        usernameLabel.setFont(Font.font("Arial", FontWeight.BOLD, usernameSize));
+        usernameLabel.setTextFill(usernameColor);
+        usernameLabel.setLayoutX(usernameX);
+        usernameLabel.setLayoutY(usernameY - usernameSize);
+        baseLayer.getChildren().add(usernameLabel);
 
-        getChildren().addAll(view, overlay);
+        overlayLayer = new Pane();
+        overlayLayer.setPrefSize(800, 598);
+        overlayLayer.setVisible(false);
+        overlayLayer.setMouseTransparent(true);
+
+        Rectangle dimmer = new Rectangle(800, 598);
+        dimmer.setFill(new Color(0, 0, 0, 0.75));
+        overlayLayer.getChildren().add(dimmer);
+
+        overlayImage = playMenuImg == null ? null : new ImageView(playMenuImg);
+        if (overlayImage != null) {
+            overlayImage.setLayoutX(120);
+            overlayImage.setLayoutY(100);
+            overlayImage.setFitWidth(600);
+            overlayImage.setFitHeight(400);
+            overlayImage.setPreserveRatio(false);
+            overlayLayer.getChildren().add(overlayImage);
+        }
+
+        configureLevelButtons();
+
+        getChildren().addAll(baseLayer, overlayLayer);
 
         setPrefSize(800, 598);
         setMinSize(800, 598);
         setMaxSize(800, 598);
 
-        drawUsernameOnOverlay();
-
         view.setOnMouseMoved(e -> {
+            if (showingLevelOverlay) {
+                setCursor(Cursor.HAND);
+                return;
+            }
             int which = whichHotspot(e.getX(), e.getY());
             switch (which) {
                 case 1 -> { view.setImage(hoverPlay); setCursor(Cursor.HAND); }
@@ -106,68 +141,53 @@ public class GameMenuPane extends StackPane {
         });
 
         view.setOnMouseExited(e -> {
+            if (showingLevelOverlay) {
+                return;
+            }
             view.setImage(baseImg);
             setCursor(Cursor.DEFAULT);
         });
 
         view.setOnMouseClicked(e -> {
-            if (handler == null) return;
+            if (handler == null) {
+                return;
+            }
+
+            if (showingLevelOverlay) {
+                return;
+            }
+
             int which = whichHotspot(e.getX(), e.getY());
             switch (which) {
                 case 1 -> {
-                    // Draw play menu image on overlay with heavier full-screen shadow
-                    GraphicsContext gc = overlay.getGraphicsContext2D();
-                    gc.clearRect(0, 0, overlay.getWidth(), overlay.getHeight());
-                    // Draw full-screen shadow (more opaque)
-                    gc.setFill(new Color(0, 0, 0, 0.7));
-                    gc.fillRect(0, 0, overlay.getWidth(), overlay.getHeight());
-                    gc.setFill(usernameColor);
-                    gc.setFont(Font.font("Arial", FontWeight.BOLD, usernameSize));
-                    gc.fillText(playerUsername, usernameX, usernameY);
-                    java.net.URL url = getClass().getResource("/pvz/images/menu/playmenu_bg.png");
-                    if (url != null) {
-                        Image playImg = new Image(url.toString());
-                        gc.drawImage(playImg, 120, 100, 600, 400); // Centered overlay
-                    } else {
-                        System.err.println("ERROR: playmenu_bg.png not found at /pvz/images/menu/playmenu_bg.png");
-                    }
+                    showLevelOverlay();
+                    handler.onPlay();
                 }
                 case 2 -> handler.onOptions();
                 case 3 -> handler.onMore();
+                case 4 -> handler.onExit();
                 case 5 -> handler.onLogout();
                 case 6 -> handler.onDeleteAccount();
-                case 4, 7 -> handler.onExit();
+                case 7 -> handler.onExit();
+                default -> { }
             }
         });
-
-        widthProperty().addListener((obs, o, w) -> resizeToImage());
-        heightProperty().addListener((obs, o, h) -> resizeToImage());
     }
 
-    private void drawUsernameOnOverlay() {
-        GraphicsContext gc = overlay.getGraphicsContext2D();
-        gc.clearRect(0, 0, overlay.getWidth(), overlay.getHeight());
-        gc.setFill(usernameColor);
-        gc.setFont(Font.font("Arial", FontWeight.BOLD, usernameSize));
-        gc.fillText(playerUsername, usernameX, usernameY);
-    }
-
-
-    private void resizeToImage() {
-        // View is fixed at 800x598 with preserveRatio=true
-        drawUsernameOnOverlay();
+    private void updateUsernameLabel() {
+        usernameLabel.setText(playerUsername);
+        usernameLabel.setFont(Font.font("Arial", FontWeight.BOLD, usernameSize));
+        usernameLabel.setTextFill(usernameColor);
+        usernameLabel.setLayoutX(usernameX);
+        usernameLabel.setLayoutY(usernameY - usernameSize);
     }
 
     public void setHandler(Handler handler) {
         this.handler = handler;
     }
 
-
-    /**
-     * Set custom hotspot positions (normalized coordinates 0..1)
-     */
     public void setHotspotsNormalized(Rectangle2D play, Rectangle2D options, Rectangle2D more,
-                                     Rectangle2D logout, Rectangle2D delete, Rectangle2D exit) {
+                                      Rectangle2D logout, Rectangle2D delete, Rectangle2D exit) {
         this.rPlay = Objects.requireNonNull(play);
         this.rOptions = Objects.requireNonNull(options);
         this.rMore = Objects.requireNonNull(more);
@@ -176,18 +196,14 @@ public class GameMenuPane extends StackPane {
         this.rExit = Objects.requireNonNull(exit);
     }
 
-    /**
-     * Set custom username display position and appearance
-     */
-    public void setUsernamePosition(double x, double y, double size, javafx.scene.paint.Color color) {
+    public void setUsernamePosition(double x, double y, double size, Color color) {
         this.usernameX = x;
         this.usernameY = y;
         this.usernameSize = size;
         this.usernameColor = color;
-        drawUsernameOnOverlay();
+        updateUsernameLabel();
     }
 
-    // FIXED: now uses actual ImageView size
     private boolean containsNormalized(Rectangle2D r, double x, double y) {
         double iw = view.getBoundsInParent().getWidth();
         double ih = view.getBoundsInParent().getHeight();
@@ -219,4 +235,68 @@ public class GameMenuPane extends StackPane {
     private Rectangle2D rect(double x, double y, double w, double h) {
         return new Rectangle2D(x, y, w, h);
     }
+
+    private void showLevelOverlay() {
+        showingLevelOverlay = true;
+        overlayLayer.setVisible(true);
+        overlayLayer.setMouseTransparent(false);
+        view.setMouseTransparent(true);
+        setCursor(Cursor.DEFAULT);
+    }
+
+    private void hideOverlay() {
+        showingLevelOverlay = false;
+        overlayLayer.setVisible(false);
+        overlayLayer.setMouseTransparent(true);
+        view.setMouseTransparent(false);
+        setCursor(Cursor.DEFAULT);
+    }
+
+    private void configureLevelButtons() {
+        double overlayX = overlayImage != null ? overlayImage.getLayoutX() : 120;
+        double overlayY = overlayImage != null ? overlayImage.getLayoutY() : 100;
+
+        double[][] levelBounds = {
+            {overlayX + 20,  overlayY + 20,  115, 230}, // Level 1
+            {overlayX + 140, overlayY + 20,  115, 230}, // Level 2
+            {overlayX + 260, overlayY + 20,  115, 230}, // Level 3
+            {overlayX + 380, overlayY + 20,  115, 230}, // Level 4
+            {overlayX + 500, overlayY + 20,  115, 230}  // Level 5
+        };
+
+        for (int i = 0; i < levelBounds.length; i++) {
+            addLevelButton(levelBounds[i], i + 1);
+        }
+
+        double[] backBounds = {overlayX + 220, overlayY + 260, 150, 80};
+        addLevelButton(backBounds, 0);
+    }
+
+    private void addLevelButton(double[] bounds, int levelNumber) {
+        Button button = new Button();
+        button.setLayoutX(bounds[0]);
+        button.setLayoutY(bounds[1]);
+        button.setPrefWidth(bounds[2]);
+        button.setPrefHeight(bounds[3]);
+        button.setOpacity(0.08);
+        button.setFocusTraversable(false);
+        button.setStyle("-fx-background-color: transparent;");
+        button.setOnAction(e -> {
+            if (levelNumber == 0) {
+                hideOverlay();
+            } else {
+                handleLevelSelection(levelNumber);
+            }
+        });
+        overlayLayer.getChildren().add(button);
+    }
+
+    private void handleLevelSelection(int levelNumber) {
+        hideOverlay();
+        if (handler != null) {
+            handler.onLevelSelected(levelNumber);
+        }
+    }
+
+    
 }

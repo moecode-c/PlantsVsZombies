@@ -63,15 +63,8 @@ Write-Host "Using JavaFX lib: $fx" -ForegroundColor Cyan
 Write-Verbose "Jars:"
 Get-ChildItem -Path $fx -Filter 'javafx-*.jar' | ForEach-Object { Write-Verbose "  $($_.Name)" }
 
-# Compile (module-path for JavaFX)
-$src = @(
-    'src\pvz\model\Player.java',
-    'src\pvz\model\PlayerStore.java',
-    'src\pvz\ui\AuthFormPane.java',
-    'src\pvz\ui\ImageMenuPane.java',
-    'src\pvz\ui\GameMenuPane.java',
-    'src\pvz\Main.java'
-)
+# Compile every Java source under src (module-path for JavaFX)
+$src = Get-ChildItem -Path 'src' -Recurse -Filter '*.java' | ForEach-Object { $_.FullName }
 if (-not (Test-Path 'bin')) { New-Item -ItemType Directory -Path 'bin' | Out-Null }
 
 & javac --module-path $fx --add-modules javafx.controls,javafx.media -d bin @src

@@ -1,27 +1,23 @@
+package pvz.model;
 
-import javafx.animation.PauseTransition;
-import javafx.application.Platform;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Pane;
-import javafx.util.Duration;
 
-public class DefaultZombie extends Zombie
-{
-    public DefaultZombie()
-    {
-        super(10, 0.4, 100);
-        elementImage=new ImageView(new Image("images/zombies/defaultZombie.gif"));
-        elementImage.setFitHeight(155);
-        elementImage.setFitWidth(134);
-        elementImage.setPreserveRatio(true);
+import pvz.util.AssetLoader;
 
+public class FootballZombie extends Zombie {
+    public FootballZombie() {
+        super(20, 0.8, 300);
+        ImageView view = new ImageView(AssetLoader.loadImage("images/zombies1/FootballZombie.gif"));
+        view.setFitWidth(120);
+        view.setFitHeight(125);
+        view.setPreserveRatio(true);
+        this.elementImage = view;
     }
 
-    public DefaultZombie(int x, int y)
-    {
+    public FootballZombie(int x, int y) {
         this();
-        super.x = x;
-        super.y = y;
+        this.x = x;
+        this.y = y;
     }
 }

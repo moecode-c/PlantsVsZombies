@@ -1,15 +1,22 @@
 package pvz.model;
 
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Pane;
+
+import pvz.util.AssetLoader;
 
 public class DefaultZombie extends Zombie {
     public DefaultZombie() {
-        super(10, 1.0, 100);
+        super(10, 0.5, 120);
+        ImageView view = new ImageView(AssetLoader.loadImage("images/zombies1/Zombie.gif"));
+        view.setFitWidth(134);
+        view.setFitHeight(155);
+        view.setPreserveRatio(true);
+        this.elementImage = view;
     }
-    public DefaultZombie(int posX, int posY) {
+
+    public DefaultZombie(int x, int y) {
         this();
-        appear(null, posX, posY);
+        this.x = x;
+        this.y = y;
     }
 }

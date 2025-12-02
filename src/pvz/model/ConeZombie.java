@@ -1,32 +1,22 @@
+package pvz.model;
 
-import javafx.animation.PauseTransition;
-import javafx.application.Platform;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Pane;
-import javafx.util.Duration;
 
-public class ConeZombie extends Zombie
-{
-    // Added to be able to use in the loading of files related to "level" class & in fileOperations interface
-    public ConeZombie()
-    {
-        super(10, 0.4, 150);
-        elementImage=new ImageView(new Image("images/zombies/ConeZombie.gif"));
-        //ImageView image = new ImageView(new Image("images/zombies/walking-plants-vs-zombies.gif"));
-        elementImage.setFitHeight(155);
-        elementImage.setFitWidth(134);
-        elementImage.setPreserveRatio(true);
+import pvz.util.AssetLoader;
 
-
+public class ConeZombie extends Zombie {
+    public ConeZombie() {
+        super(10, 0.45, 180);
+        ImageView view = new ImageView(AssetLoader.loadImage("images/zombies1/ConeZombie.gif"));
+        view.setFitHeight(155);
+        view.setFitWidth(134);
+        view.setPreserveRatio(true);
+        this.elementImage = view;
     }
 
-    // Added to be used when spawning a zombie on the yard
-    public ConeZombie(int x, int y)
-    {
+    public ConeZombie(int x, int y) {
         this();
-        super.x = x;
-        super.y = y;
+        this.x = x;
+        this.y = y;
     }
-
 }
