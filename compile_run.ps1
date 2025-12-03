@@ -86,4 +86,4 @@ if (Test-Path 'src\pvz\music') {
 }
 
 # Run
-& java --module-path $fx --add-modules javafx.controls,javafx.graphics,javafx.media -cp bin pvz.Main
+& java --module-path $fx --add-modules javafx.controls,javafx.graphics,javafx.media --enable-native-access=javafx.graphics,javafx.media -cp bin pvz.Main

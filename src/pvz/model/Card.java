@@ -171,15 +171,19 @@ public class Card
 							}
 
 							if (closestButton != null) {
-								int row = GridPane.getRowIndex(closestButton);
-								int col = GridPane.getColumnIndex(closestButton);
+								int row = resolveRowIndex(closestButton);
+								int col = resolveColumnIndex(closestButton);
 
-								if (yard.isValidPosition(row, col)) {
+								boolean canHighlight = (plantType == null)
+										? yard.getPlantAt(row, col) != null
+										: yard.isValidPosition(row, col);
+
+								if (canHighlight) {
 									Bounds buttonBounds = closestButton.localToScene(closestButton.getBoundsInLocal());
 									hoverImageView.setLayoutX(buttonBounds.getMinX() + buttonBounds.getWidth() / 2 - hoverImageView.getFitWidth() / 2);
 									hoverImageView.setLayoutY(buttonBounds.getMinY() + buttonBounds.getHeight() / 2 - hoverImageView.getFitHeight() / 2);
 
-									hoverImageView.setOpacity(0.5);
+									hoverImageView.setOpacity(plantType == null ? 0.8 : 0.5);
 									hoverImageView.setVisible(true);
 								} else {
 									hoverImageView.setVisible(false);
@@ -219,18 +223,24 @@ public class Card
 								if (buttonBounds.contains(event.getSceneX(), event.getSceneY())) {
 									double centerX = buttonBounds.getMinX() + buttonBounds.getWidth() / 2;
 									double centerY = buttonBounds.getMinY() + buttonBounds.getHeight() / 2;
+									int row = resolveRowIndex(button);
+									int col = resolveColumnIndex(button);
 
 									draggingImageView.setVisible(false);
 									root.getChildren().remove(draggingImageView);
 
 									if (plantType == null) {
-										System.out.println("Shovel used at (" + GridPane.getRowIndex(button) + ", " + GridPane.getColumnIndex(button) + ")");
-										yard.removePlant(root, GridPane.getRowIndex(button), GridPane.getColumnIndex(button));
+										if (yard.getPlantAt(row, col) != null) {
+											System.out.println("Shovel used at (" + row + ", " + col + ")");
+											yard.removePlant(root, row, col);
+										} else {
+											System.out.println("Shovel used on empty tile (" + row + ", " + col + ")");
+										}
 									} else {
 										try {
 											Plant plant = plantType.getDeclaredConstructor(int.class, int.class).newInstance((int) centerX, (int) centerY);
 
-											if(yard.grid[GridPane.getRowIndex(button)][GridPane.getColumnIndex(button)] == null)
+											if (yard.grid[row][col] == null)
 											{
 												yard.sunCounter -= plant.getCost();
 												yard.label.setText(String.valueOf(yard.sunCounter));
@@ -238,7 +248,7 @@ public class Card
 												startCooldown();
 											}
 
-											yard.placePlant(plant, root, GridPane.getRowIndex(button), GridPane.getColumnIndex(button));
+											yard.placePlant(plant, root, row, col);
 
 										} catch (Exception e) {
 											System.out.println("An exception occurred: " + e);
@@ -328,7 +338,7 @@ public class Card
 
 	public void cardSelectedAudio() {
 		try {
-			String path = getClass().getResource("/music/card selected.mp3").toExternalForm();
+			String path = getClass().getResource("/pvz/music/card selected.mp3").toExternalForm();
 			System.out.println("Path: " + path);
 			Media media = new Media(path);
 			MediaPlayer mediaPlayer = new MediaPlayer(media);
@@ -342,7 +352,7 @@ public class Card
 
 	public void cardUnavailableAudio() {
 		try {
-			String path = getClass().getResource("/music/card unavailable.mp3").toExternalForm();
+			String path = getClass().getResource("/pvz/music/card unavailable.mp3").toExternalForm();
 			Media media = new Media(path);
 			MediaPlayer mediaPlayer = new MediaPlayer(media);
 			mediaPlayer.setVolume(0.3);
@@ -351,6 +361,16 @@ public class Card
 		} catch (Exception e) {
 			System.out.println("Error playing unavailable card sound: " + e.getMessage());
 		}
+	}
+
+	private int resolveRowIndex(Node node) {
+		Integer value = GridPane.getRowIndex(node);
+		return value != null ? value : 0;
+	}
+
+	private int resolveColumnIndex(Node node) {
+		Integer value = GridPane.getColumnIndex(node);
+		return value != null ? value : 0;
 	}
 }
 

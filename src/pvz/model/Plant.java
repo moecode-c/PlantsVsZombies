@@ -7,18 +7,16 @@ import javafx.scene.layout.Pane;
 /**
  * Base class for all plants placed on the yard grid.
  */
-public abstract class Plant extends Characters {
+public abstract class Plant extends Characters implements Runnable {
     protected int cost;
-    protected double waitingTime;
     protected ImageView sprite;
 
     public Plant() {
     }
 
     public Plant(int cost, double waitingTime, int health) {
+        super(health, waitingTime);
         this.cost = cost;
-        this.waitingTime = waitingTime;
-        this.health = health;
     }
 
     public int getCost() {
@@ -41,34 +39,52 @@ public abstract class Plant extends Characters {
 
     @Override
     public void takeDamage(int damage) {
-        super.takeDamage(damage);
+        health -= damage;
         if (health <= 0) {
-            setAlive(false);
-            Platform.runLater(() -> {
-                disappear(Yard.root);
-                synchronized (Yard.plants) {
-                    Yard.plants.remove(this);
+            health = 0;
+            disappear(Yard.root);
+            synchronized (Yard.grid) {
+                int row = getX();
+                int col = getY();
+                if (row >= 0 && row < Yard.ROWS && col >= 0 && col < Yard.COLUMNS && Yard.grid[row][col] == this) {
+                    Yard.grid[row][col] = null;
                 }
-            });
+            }
+            synchronized (Yard.plants) {
+                Yard.plants.remove(this);
+            }
+            System.out.println("Plant has died!");
         }
     }
 
     @Override
     public void appear(Pane root) {
-        ImageView node = getSprite();
-        if (node != null && !root.getChildren().contains(node)) {
-            root.getChildren().add(node);
-        }
         setAlive(true);
+        ImageView node = getSprite();
+        Platform.runLater(() -> {
+            if (node != null && !root.getChildren().contains(node)) {
+                node.setVisible(true);
+                root.getChildren().add(node);
+                System.out.println("Plant appears.");
+            }
+        });
     }
 
     @Override
     public void disappear(Pane root) {
+        setAlive(false);
+        Thread current = Thread.currentThread();
+        if (current != null && !"JavaFX Application Thread".equals(current.getName())) {
+            current.interrupt();
+        }
         ImageView node = getSprite();
         if (node != null) {
-            Platform.runLater(() -> root.getChildren().remove(node));
+            Platform.runLater(() -> {
+                node.setVisible(false);
+                root.getChildren().remove(node);
+                System.out.println("Plant disappears.");
+            });
         }
-        setAlive(false);
     }
 
     @Override

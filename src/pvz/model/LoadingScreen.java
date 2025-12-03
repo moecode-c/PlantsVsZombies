@@ -3,7 +3,6 @@ package pvz.model;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.scene.Scene;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
@@ -11,8 +10,7 @@ import javafx.util.Duration;
 
 import java.util.Random;
 
-import pvz.model.Yard;
-import pvz.ui.ImageMenuPane;
+import pvz.util.AssetLoader;
 
 public class LoadingScreen
 {
@@ -32,7 +30,7 @@ public class LoadingScreen
 		return LOADING_SCREEN_PATHS[randomIndex];
 	}
 
-	public static void show(Stage stage)
+	public static void show(Stage stage, Runnable onFinished)
 	{
 		// Root AnchorPane
 		root = new AnchorPane();
@@ -52,15 +50,7 @@ public class LoadingScreen
 
 		// Select a random image path
 		String randomImagePath = getRandomLoadingScreen();
-		try {
-			// Try to load as resource first
-			Image img = new Image(LoadingScreen.class.getResourceAsStream("/" + randomImagePath));
-			if (img.getWidth() <= 0) throw new Exception("empty image");
-			backgroundImage.setImage(img);
-		} catch (Exception ex) {
-			// Fallback: try direct path
-			backgroundImage.setImage(new Image(randomImagePath));
-		}
+		backgroundImage.setImage(AssetLoader.loadImage(randomImagePath));
 
 		// Add ImageView to child AnchorPane
 		childPane.getChildren().add(backgroundImage);
@@ -76,16 +66,8 @@ public class LoadingScreen
 		PauseTransition pause = new PauseTransition(Duration.seconds(LOADING_SCREEN_TIME));
 		pause.setOnFinished(event -> {
 			System.out.println("Exited Loading Screen");
-			// Return to the main menu
-			try {
-				ImageMenuPane menu = new ImageMenuPane();
-				AnchorPane menuRoot = new AnchorPane();
-				menuRoot.getChildren().add(menu);
-				Scene menuScene = new Scene(menuRoot, menu.getPrefWidth(), menu.getPrefHeight());
-				stage.setScene(menuScene);
-				stage.setTitle("PvZ Menu");
-				stage.sizeToScene();
-			} catch (Exception ignored) {
+			if (onFinished != null) {
+				Platform.runLater(onFinished);
 			}
 		});
 
@@ -96,7 +78,7 @@ public class LoadingScreen
 	{
 		// Add loading screen
 		Platform.runLater(() -> {
-			ImageView loadingScreenImage = new ImageView(new Image("images/others/loadingScreen.png"));
+			ImageView loadingScreenImage = new ImageView(AssetLoader.loadImage("images/others/loadingScreen.png"));
 			loadingScreenImage.setFitWidth(810);
 			loadingScreenImage.setFitHeight(598);
 			loadingScreenImage.setPreserveRatio(false);

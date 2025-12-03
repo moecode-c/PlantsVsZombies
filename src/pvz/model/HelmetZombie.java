@@ -8,7 +8,7 @@ import javafx.util.Duration;
 
 public class HelmetZombie extends Zombie {
     public HelmetZombie() {
-        super(10, 0.4, 200);
+        super(10, 0.4, 150);
         elementImage = new ImageView(new Image("images/zombies/BucketheadZombie.gif"));
         elementImage.setFitWidth(135);
         elementImage.setFitHeight(120);
@@ -21,5 +21,10 @@ public class HelmetZombie extends Zombie {
         super.y = y;
         elementImage.setLayoutX(x);
         elementImage.setLayoutY(y);
+    }
+
+        @Override
+    public void appear(Pane root) {
+
     }
 }

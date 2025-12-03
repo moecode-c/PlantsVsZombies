@@ -5,7 +5,7 @@ import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.ImageCursor;
-import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -13,6 +13,8 @@ import javafx.scene.effect.Glow;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.Scene;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -27,23 +29,26 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import pvz.Level;
-import pvz.ui.ImageMenuPane;
+import pvz.ui.GameMenuPane;
 import pvz.util.AssetLoader;
 
 /**
  * Full-featured Yard implementation (adapted into `pvz.model` package).
  * Note: references to global helpers (MainGUI, LoadingScreen, SoundtrackPlayer)
- * were replaced to return to the in-project `ImageMenuPane` to avoid missing
- * external dependencies. If you have those helpers, we can wire them back.
+ * were replaced to return to the in-project `GameMenuPane` so players land on
+ * the play menu again without external helpers. If you have those helpers, we
+ * can wire them back.
  */
 public class Yard extends Thread
 {
 	// Each yard needs to have a parent level
 	public static Level parentLevel;
 	private static Stage activeStage;
+	private static String activePlayerUsername;
 
 	// YARD CONSTANT VARIABLES
 	public static final int ROWS = 5, COLUMNS = 9, WIDTH = 1278, HEIGHT = 650, MINUTES = 4, SUNCOUNTER = 50, PREVIEW_SECONDS = 15;
+	private static final double HOUSE_BOUNDARY_X = 157; // Where lawnmowers sit / house starts
 
 	// IMPORTANT ARRAYS FOR GAMEPLAY TRACKING OF PLANTS & LAWNMOWERS
 	public static volatile Characters[][] grid; // Used Placement of plants
@@ -303,29 +308,20 @@ public class Yard extends Thread
 				while (gameOn && finalZombie1.isAlive()) {
 					finalZombie1.move();
 
-					// Check if this specific lawnmower intersects with the zombie
+					// Check if this specific lawnmower's boundary has been passed
 					for (int i = 0; i < ROWS; i++) {
-						if (lawnMowers[i] != null && !lawnMowers[i].isActive()) {
-							// Get the bounds of the lawnmower
-							double lawnMowerLeft = lawnMowers[i].elementImage.getLayoutX();
-							double lawnMowerRight = lawnMowers[i].elementImage.getLayoutX() + lawnMowers[i].elementImage.getFitWidth();
+						if (lawnMowers[i] != null) {
 							double lawnMowerTop = lawnMowers[i].elementImage.getLayoutY();
 							double lawnMowerBottom = lawnMowers[i].elementImage.getLayoutY() + lawnMowers[i].elementImage.getFitHeight();
-
-							// Get the bounds of the zombie
 							double zombieCenterY = finalZombie1.getElementImage().getLayoutY() + (finalZombie1.getElementImage().getFitHeight() / 2);
+							double zombieRightEdge = finalZombie1.getElementImage().getLayoutX() + finalZombie1.getElementImage().getFitWidth();
 
-							// Check if the zombie is within the bounds of this lawnmower's row
+							// Only consider zombies that belong to this row and have completely cleared the lawnmower spot
 							if (zombieCenterY >= lawnMowerTop && zombieCenterY <= lawnMowerBottom &&
-									finalZombie1.getElementImage().getBoundsInParent().intersects(
-											lawnMowerLeft,
-											lawnMowerTop,
-											lawnMowerRight - lawnMowerLeft,
-											lawnMowerBottom - lawnMowerTop
-									)) {
-								System.out.println("Zombie intersected with lawnmower at row: " + i);
-								lawnMowers[i].activate(root); // Activate the lawnmower
-								break; // Exit the loop to ensure only one lawnmower is activated
+									zombieRightEdge <= HOUSE_BOUNDARY_X) {
+								System.out.println("Zombie passed the lawnmower at row: " + i);
+								gameOver();
+								return; // Stop processing once the player loses
 							}
 						}
 					}
@@ -475,12 +471,11 @@ public class Yard extends Thread
 				// Remove the overlay and "Game Over" image
 				root.getChildren().removeAll(overlay, gameOverImage);
 
-				// Transition to the loading screen 
-				LoadingScreen.show(activeStage);
-
-				SoundtrackPlayer.stopTrack();
-				SoundtrackPlayer.playMenuTrack();
-
+				LoadingScreen.show(activeStage, () -> {
+					SoundtrackPlayer.stopTrack();
+					SoundtrackPlayer.playMenuTrack();
+					returnToMainMenu();
+				});
 			});
 
 			// Start the sequential transition
@@ -564,10 +559,12 @@ public class Yard extends Thread
 				// Remove the overlay and "Game Win" image
 				root.getChildren().removeAll(overlay, gameWinImage);
 
-				// Transition to the loading screen -> replace with menu scene fallback
-				LoadingScreen.show(activeStage);
-				SoundtrackPlayer.stopTrack();
-				SoundtrackPlayer.playMenuTrack();
+				// Transition to the loading screen, then return to the main menu once it finishes
+				LoadingScreen.show(activeStage, () -> {
+					SoundtrackPlayer.stopTrack();
+					SoundtrackPlayer.playMenuTrack();
+					returnToMainMenu();
+				});
 			});
 
 			// Start the sequential transition
@@ -576,6 +573,61 @@ public class Yard extends Thread
 
 		System.out.println("You Won");
 		System.out.println("Game has ended, all zombie spawns and threads should stop");
+	}
+
+	private static void returnToMainMenu() {
+		Platform.runLater(() -> {
+			String username = (activePlayerUsername == null || activePlayerUsername.isBlank()) ? "Player" : activePlayerUsername;
+			GameMenuPane menu = new GameMenuPane(username);
+			menu.setUsernamePosition(55, 100, 18, Color.WHITE);
+			menu.setHandler(new GameMenuPane.Handler() {
+				@Override public void onPlay() {
+					// GameMenuPane shows the level overlay itself; nothing extra needed here.
+				}
+
+				@Override public void onOptions() {
+					showMenuInfo("Options feature coming soon!");
+				}
+
+				@Override public void onMore() {
+					showMenuInfo("More feature coming soon!");
+				}
+
+				@Override public void onLogout() {
+					showMenuInfo("Logout from this screen is not supported. Please restart the game to sign out.");
+				}
+
+				@Override public void onDeleteAccount() {
+					showMenuInfo("Account management is only available from the startup menu.");
+				}
+
+				@Override public void onExit() {
+					Platform.exit();
+				}
+
+				@Override public void onLevelSelected(int level) {
+					setActivePlayerUsername(username);
+					Level nextLevel = new Level(level);
+					nextLevel.startLevel(activeStage);
+				}
+			});
+
+			StackPane menuRoot = new StackPane(menu);
+			Scene menuScene = new Scene(menuRoot, menu.getPrefWidth(), menu.getPrefHeight());
+			activeStage.setScene(menuScene);
+			activeStage.setTitle("PvZ Menu");
+			activeStage.sizeToScene();
+		});
+	}
+
+	public static void setActivePlayerUsername(String username) {
+		activePlayerUsername = username;
+	}
+
+	private static void showMenuInfo(String message) {
+		Alert alert = new Alert(Alert.AlertType.INFORMATION, message);
+		alert.setHeaderText(null);
+		alert.showAndWait();
 	}
 
 
@@ -1292,7 +1344,7 @@ public class Yard extends Thread
 		{
 			// Create instance
 			lawnMowers[i] = new LawnMower(i);
-			lawnMowers[i].getElementImage().setLayoutX(157);
+			lawnMowers[i].getElementImage().setLayoutX(HOUSE_BOUNDARY_X);
 		}
 
 		// Add lawnmowers to the root pane.

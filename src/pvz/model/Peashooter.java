@@ -28,36 +28,75 @@ public class Peashooter extends Plant {
     }
 
     @Override
-    public synchronized void run() {
+    public void run() {
         while (isAlive() && !Thread.currentThread().isInterrupted()) {
             try {
                 Thread.sleep(4000);
                 if (!isAlive() || Thread.currentThread().isInterrupted()) {
-                    this.disappear(Yard.root);
                     break;
                 }
-                Pea projectile = new Pea(15, this);
-                projectile.getElementImage().setLayoutX(getSprite().getLayoutX() + 65);
-                projectile.getElementImage().setLayoutY(getSprite().getLayoutY() + 31);
-                projectile.appear(Yard.root);
-                Yard.peas.add(projectile);
-                Thread projectileThread = new Thread(projectile);
-                projectileThread.setDaemon(true);
-                projectileThread.start();
-                playShootSound();
-            } catch (Exception ex) {
-                System.out.println("Peashooter interrupted: " + ex.getMessage());
+
+                if (!hasZombieInLane()) {
+                    continue;
+                }
+
+                Platform.runLater(() -> {
+                    if (!isAlive()) {
+                        return;
+                    }
+                    Pea projectile = new Pea(15, this);
+                    projectile.getElementImage().setLayoutX(getSprite().getLayoutX() + 65);
+                    projectile.getElementImage().setLayoutY(getSprite().getLayoutY() + 31);
+                    projectile.appear(Yard.root);
+                    Yard.peas.add(projectile);
+                    Thread projectileThread = new Thread(projectile);
+                    projectileThread.setDaemon(true);
+                    projectileThread.start();
+                    playShootSound();
+                });
+            } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 break;
+            } catch (Exception ex) {
+                System.out.println("Peashooter interrupted: " + ex.getMessage());
             }
         }
-        disappear(Yard.root);
+        Platform.runLater(() -> disappear(Yard.root));
         System.out.println("Peashooter stopped.");
+    }
+
+    private boolean hasZombieInLane() {
+        ImageView sprite = getSprite();
+        if (sprite == null) {
+            return false;
+        }
+
+        double shooterY = sprite.getLayoutY();
+        double shooterX = sprite.getLayoutX();
+        final double laneTolerance = 45.0; // pixels
+
+        synchronized (Yard.zombies) {
+            for (Zombie zombie : Yard.zombies) {
+                if (zombie == null || !zombie.isAlive()) {
+                    continue;
+                }
+                ImageView zombieView = zombie.getElementImage();
+                if (zombieView == null) {
+                    continue;
+                }
+                double zombieY = zombieView.getLayoutY();
+                double zombieX = zombieView.getLayoutX();
+                if (Math.abs(zombieY - shooterY) <= laneTolerance && zombieX > shooterX) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public void playShootSound() {
         try {
-            String audioPath = getClass().getResource("/music/peashooter-shoot.mp3").toExternalForm();
+            String audioPath = getClass().getResource("/pvz/music/peashooter-shoot.mp3").toExternalForm();
             Media sound = new Media(audioPath);
             MediaPlayer player = new MediaPlayer(sound);
             player.setVolume(0.3);

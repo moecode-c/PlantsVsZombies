@@ -188,6 +188,7 @@ public class Main extends Application {
             }
             @Override public void onLevelSelected(int level) {
                 stopMenuMusic();
+                Yard.setActivePlayerUsername(username);
                 Level lvl = new Level(level);
                 lvl.startLevel(stage);
             }

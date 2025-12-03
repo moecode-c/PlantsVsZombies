@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import pvz.model.LoadingScreen;
 import pvz.model.SoundtrackPlayer;
 import pvz.model.Yard;
 
@@ -45,11 +46,14 @@ public class Level implements Serializable {
         playLevelSoundtrack();
 
         currentYard = new Yard(this, stage);
-        Scene yardScene = new Scene(currentYard.root, Yard.WIDTH, Yard.HEIGHT);
-        stage.setScene(yardScene);
-        stage.setTitle("PvZ - Level " + levelNumber);
-        stage.setResizable(false);
-        currentYard.start();
+
+        LoadingScreen.show(stage, () -> {
+            Scene yardScene = new Scene(currentYard.root, Yard.WIDTH, Yard.HEIGHT);
+            stage.setScene(yardScene);
+            stage.setTitle("PvZ - Level " + levelNumber);
+            stage.setResizable(false);
+            currentYard.start();
+        });
         return currentYard;
     }
 

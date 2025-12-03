@@ -11,7 +11,7 @@ public class SoundtrackPlayer
 	{
 		try
 		{
-			String path = SoundtrackPlayer.class.getResource("/music/level 1 soundtrack.mp3").toExternalForm();
+			String path = SoundtrackPlayer.class.getResource("/pvz/music/level 1 soundtrack.mp3").toExternalForm();
 
 			// Create a new MediaPlayer for the soundtrack
 			Media media = new Media(path);
@@ -33,7 +33,7 @@ public class SoundtrackPlayer
 	{
 		try
 		{
-			String path = SoundtrackPlayer.class.getResource("/music/level 2 soundtrack.mp3").toExternalForm();
+			String path = SoundtrackPlayer.class.getResource("/pvz/music/level 2 soundtrack.mp3").toExternalForm();
 
 			// Create a new MediaPlayer for the soundtrack
 			Media media = new Media(path);
@@ -55,7 +55,7 @@ public class SoundtrackPlayer
 	{
 		try
 		{
-			String path = SoundtrackPlayer.class.getResource("/music/level 3 christmas soundtrack.mp3").toExternalForm();
+			String path = SoundtrackPlayer.class.getResource("/pvz/music/level 3 christmas soundtrack.mp3").toExternalForm();
 
 			// Create a new MediaPlayer for the soundtrack
 			Media media = new Media(path);
@@ -77,7 +77,7 @@ public class SoundtrackPlayer
 	{
 		try
 		{
-			String path = SoundtrackPlayer.class.getResource("/music/main menu soundtrack.mp3").toExternalForm();
+			String path = SoundtrackPlayer.class.getResource("/pvz/music/main menu soundtrack.mp3").toExternalForm();
 
 			// Create a new MediaPlayer for the soundtrack
 			Media media = new Media(path);

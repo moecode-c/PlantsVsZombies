@@ -1,16 +1,24 @@
 package pvz.model;
 
+import java.io.Serializable;
+
 import javafx.application.Platform;
 import javafx.scene.layout.Pane;
 
 /**
  * Base class for any entity that can appear on the yard grid (plants, zombies, projectiles, etc.).
  */
-public abstract class Characters extends MainElements implements Runnable {
+public abstract class Characters extends MainElements implements Serializable, Runnable {
     protected int health;
+    protected double waitingTime;
     private volatile boolean alive;
 
     public Characters() {
+    }
+
+    public Characters(int health, double waitingTime) {
+        this.health = health;
+        this.waitingTime = waitingTime;
     }
 
     public Characters(int x, int y, int health) {
@@ -24,6 +32,14 @@ public abstract class Characters extends MainElements implements Runnable {
 
     public void setHealth(int health) {
         this.health = health;
+    }
+
+    public double getWaitingTime() {
+        return waitingTime;
+    }
+
+    public void setWaitingTime(double waitingTime) {
+        this.waitingTime = waitingTime;
     }
 
     public boolean isAlive() {

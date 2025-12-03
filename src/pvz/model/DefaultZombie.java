@@ -6,8 +6,8 @@ import pvz.util.AssetLoader;
 
 public class DefaultZombie extends Zombie {
     public DefaultZombie() {
-        super(10, 0.5, 120);
-        ImageView view = new ImageView(AssetLoader.loadImage("images/zombies1/Zombie.gif"));
+        super(10, 0.5, 90);
+        ImageView view = new ImageView(AssetLoader.loadImage("images/zombies/Zombie.gif"));
         view.setFitWidth(134);
         view.setFitHeight(155);
         view.setPreserveRatio(true);
