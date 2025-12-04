@@ -106,14 +106,6 @@ public class Yard extends Thread
 		displayYard();
 	}
 
-	/*
-		METHODS
-
-		ANYTHING THAT ACCESSES A SHARED RESOURCE
-		IS NOW A SYNCHRONIZED METHOD (AT THE MOMENT IS THE grid[][] array)
-		in placePlant, removePlant, getPlantAt, spawnZombie, isValidPosition
-	 */
-
 	/* a method made to check if the current cell ur trying to place a plant at lies between the
 	 interval of rows and columns in the 2d array */
 	public boolean isValidPosition(int row, int col)
