@@ -13,6 +13,7 @@ import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import pvz.model.PlayerStore;
+import pvz.model.Yard;
 import pvz.ui.AuthFormPane;
 import pvz.ui.GameMenuPane;
 import pvz.ui.ImageMenuPane;
@@ -184,6 +185,12 @@ public class Main extends Application {
                     confirm.getResult() == javafx.scene.control.ButtonType.OK) {
                     Platform.exit();
                 }
+            }
+            @Override public void onLevelSelected(int level) {
+                stopMenuMusic();
+                Yard.setActivePlayerUsername(username);
+                Level lvl = new Level(level);
+                lvl.startLevel(stage);
             }
         });
     }

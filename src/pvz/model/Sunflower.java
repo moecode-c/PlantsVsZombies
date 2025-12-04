@@ -1,7 +1,7 @@
+package pvz.model;
 
 import javafx.animation.*;
 import javafx.scene.effect.ColorAdjust;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
@@ -9,6 +9,8 @@ import javafx.scene.shape.ArcTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.util.Duration;
+
+import pvz.util.AssetLoader;
 
 public class Sunflower extends Plant {
     private boolean sunReady = false;
@@ -21,12 +23,13 @@ public class Sunflower extends Plant {
         this();
         super.x = posX;
         super.y = posY;
-        sprite = new ImageView(new Image("images/plants/sunflower.gif"));
+        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/sunflower.gif"));
         sprite.setFitWidth(73);
         sprite.setFitHeight(70);
         sprite.setPreserveRatio(true);
         sprite.setLayoutX((posX - sprite.getFitWidth() / 2) + 5);
         sprite.setLayoutY((posY - sprite.getFitHeight() / 2) - 15);
+        setSprite(sprite);
     }
 
     @Override
@@ -39,13 +42,17 @@ public class Sunflower extends Plant {
     public void run() {
     }
 
-    public void beginSunProduction(AnchorPane root) {
+    public void startSunProduction(AnchorPane root) {
         Timeline sunTimeline = new Timeline(
                 new KeyFrame(Duration.seconds(0), event -> createSun(root)),
                 new KeyFrame(Duration.seconds(10), event -> createSun(root))
         );
         sunTimeline.setCycleCount(Timeline.INDEFINITE);
         sunTimeline.play();
+    }
+
+    public void beginSunProduction(AnchorPane root) {
+        startSunProduction(root);
     }
 
     private void createSun(AnchorPane root) {

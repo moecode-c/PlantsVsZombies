@@ -6,10 +6,10 @@ import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.scene.effect.ColorAdjust;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
 import javafx.scene.media.Media;
+import pvz.util.AssetLoader;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
@@ -18,7 +18,6 @@ public abstract class Zombie extends Characters implements Runnable {
     protected double speed;
     private volatile boolean isAttacking = false;
     private volatile boolean slowed = false;
-    protected ImageView elementImage;
 
     public Zombie() {}
 
@@ -114,22 +113,22 @@ public abstract class Zombie extends Characters implements Runnable {
         double originalSpeed = this.getSpeed();
         setSpeed(0);
         if (this instanceof FootballZombie) {
-            elementImage.setImage(new Image("images/zombiesatt/FootballZombieAttack.gif"));
+            elementImage.setImage(AssetLoader.loadImage("images/zombies/FootballZombieAttack.gif"));
             elementImage.setFitWidth(120);
             elementImage.setFitHeight(125);
             elementImage.setPreserveRatio(true);
         } else if (this instanceof ConeZombie) {
-            elementImage.setImage(new Image("images/zombiesatt/ConeheadZombieAttack.gif"));
+            elementImage.setImage(AssetLoader.loadImage("images/zombies/ConeheadZombieAttack.gif"));
             elementImage.setFitHeight(155);
             elementImage.setFitWidth(134);
             elementImage.setPreserveRatio(true);
         } else if (this instanceof DefaultZombie) {
-            elementImage.setImage(new Image("images/zombiesatt/ZombieAttack.gif"));
+            elementImage.setImage(AssetLoader.loadImage("images/zombies/ZombieAttack.gif"));
             elementImage.setFitHeight(155);
             elementImage.setFitWidth(134);
             elementImage.setPreserveRatio(true);
         } else if (this instanceof HelmetZombie) {
-            elementImage.setImage(new Image("images/zombiesatt/BucketheadZombieAttack.gif"));
+            elementImage.setImage(AssetLoader.loadImage("images/zombies/BucketheadZombieAttack.gif"));
             elementImage.setFitHeight(155);
             elementImage.setFitWidth(134);
             elementImage.setPreserveRatio(true);
@@ -146,22 +145,22 @@ public abstract class Zombie extends Characters implements Runnable {
                 isAttacking = false;
                 Platform.runLater(() -> {
                     if (this instanceof FootballZombie && this.isAlive()) {
-                        elementImage.setImage(new Image("images/zombies1/FootballZombie.gif"));
+                        elementImage.setImage(AssetLoader.loadImage("images/zombies/FootballZombie.gif"));
                         elementImage.setFitWidth(120);
                         elementImage.setFitHeight(125);
                         elementImage.setPreserveRatio(true);
                     } else if (this instanceof DefaultZombie && this.isAlive()) {
-                        elementImage.setImage(new Image("images/zombies1/Zombie.gif"));
+                        elementImage.setImage(AssetLoader.loadImage("images/zombies/Zombie.gif"));
                         elementImage.setFitHeight(155);
                         elementImage.setFitWidth(134);
                         elementImage.setPreserveRatio(true);
                     } else if (this instanceof ConeZombie && this.isAlive()) {
-                        elementImage.setImage(new Image("images/zombies1/ConeZombie.gif"));
+                        elementImage.setImage(AssetLoader.loadImage("images/zombies/ConeZombie.gif"));
                         elementImage.setFitHeight(155);
                         elementImage.setFitWidth(134);
                         elementImage.setPreserveRatio(true);
                     } else if (this instanceof HelmetZombie && this.isAlive()) {
-                        elementImage.setImage(new Image("images/zombies1/BucketheadZombie.gif"));
+                        elementImage.setImage(AssetLoader.loadImage("images/zombies/BucketheadZombie.gif"));
                         elementImage.setFitHeight(155);
                         elementImage.setFitWidth(134);
                         elementImage.setPreserveRatio(true);
@@ -175,7 +174,9 @@ public abstract class Zombie extends Characters implements Runnable {
     }
 
     @Override
-    public abstract void appear(Pane root);
+    public void appear(Pane root) {
+        // Default no-op implementation. Specific spawning uses appear(root, x, y).
+    }
 
     public void appear(Pane root, int x, int y) {
         Platform.runLater(() -> {
@@ -189,12 +190,12 @@ public abstract class Zombie extends Characters implements Runnable {
     @Override
     public void disappear(Pane root) {
         if (this instanceof FootballZombie) {
-            elementImage.setImage(new Image("images/zombies1/FootballZombieDie.gif"));
+            elementImage.setImage(AssetLoader.loadImage("images/zombies/FootballZombieDie.gif"));
             elementImage.setFitWidth(134);
             elementImage.setFitHeight(150);
             elementImage.setPreserveRatio(true);
         } else {
-            elementImage.setImage(new Image("images/zombies1/ZombieDie.gif"));
+            elementImage.setImage(AssetLoader.loadImage("images/zombies/ZombieDie.gif"));
             elementImage.setFitHeight(155);
             elementImage.setFitWidth(134);
             elementImage.setPreserveRatio(true);
@@ -209,7 +210,7 @@ public abstract class Zombie extends Characters implements Runnable {
 
     public void zombieEatingAudio() {
         try {
-            String path = getClass().getResource("/music/zombie eating.mp3").toExternalForm();
+            String path = getClass().getResource("/pvz/music/zombie eating.mp3").toExternalForm();
             Media media = new Media(path);
             MediaPlayer mediaPlayer = new MediaPlayer(media);
             mediaPlayer.setVolume(0.3);
