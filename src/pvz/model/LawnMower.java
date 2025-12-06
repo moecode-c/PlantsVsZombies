@@ -43,35 +43,46 @@ public class LawnMower extends Characters {
     }
 
     public void activate(AnchorPane root) {
-        if (active) {
-            return;
-        }
+        if (active) return;
         active = true;
-        Thread mover = new Thread(() -> {
-            try {
-                while (elementImage.getLayoutX() < Yard.WIDTH && Yard.gameOn) {
-                    Platform.runLater(() -> elementImage.setLayoutX(elementImage.getLayoutX() + 8));
+
+        double stopX = Yard.WIDTH + elementImage.getFitWidth();
+        final double speed = 8; // pixels per frame (~160px/sec at 20ms frame pacing)
+
+        Platform.runLater(() -> {
+            javafx.animation.AnimationTimer timer = new javafx.animation.AnimationTimer() {
+                @Override
+                public void handle(long now) {
+                    if (!Yard.gameOn) {
+                        stop();
+                        disappear(root);
+                        return;
+                    }
+
+                    elementImage.setLayoutX(elementImage.getLayoutX() + speed);
                     squashZombies();
-                    Thread.sleep(20);
+
+                    if (elementImage.getLayoutX() >= stopX) {
+                        stop();
+                        disappear(root);
+                    }
                 }
-            } catch (InterruptedException ignored) {
-            } finally {
-                disappear(root);
-            }
+            };
+            timer.start();
         });
-        mover.setDaemon(true);
-        mover.start();
     }
 
     private void squashZombies() {
+        java.util.List<Zombie> snapshot;
         synchronized (Yard.zombies) {
-            Yard.zombies.forEach(zombie -> {
-                if (zombie != null && zombie.getElementImage() != null &&
-                        elementImage.getBoundsInParent().intersects(zombie.getElementImage().getBoundsInParent())) {
-                    zombie.takeDamage(Integer.MAX_VALUE);
-                }
-            });
+            snapshot = new java.util.ArrayList<>(Yard.zombies);
         }
+        snapshot.forEach(zombie -> {
+            if (zombie != null && zombie.getElementImage() != null &&
+                    elementImage.getBoundsInParent().intersects(zombie.getElementImage().getBoundsInParent())) {
+                zombie.takeDamage(Integer.MAX_VALUE);
+            }
+        });
     }
 
     @Override

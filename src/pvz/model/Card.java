@@ -95,6 +95,9 @@ public class Card
 
 		cardImageView.setOnMousePressed(event ->
 		{
+			if (onCooldown) {
+				return;
+			}
 			if (yard.sunCounter < cost)
 			{
 				cardUnavailableAudio();
@@ -136,6 +139,9 @@ public class Card
 			if (yard.sunCounter < cost)
 			{
 				// If the sun counter is not sufficient, prevent dragging
+				return;
+			}
+			if (onCooldown) {
 				return;
 			}
 
@@ -209,6 +215,9 @@ public class Card
 			{
 				return;
 			}
+			if (onCooldown) {
+				return;
+			}
 
 			new Thread(() -> {
 				try {
@@ -238,18 +247,16 @@ public class Card
 										}
 									} else {
 										try {
-											Plant plant = plantType.getDeclaredConstructor(int.class, int.class).newInstance((int) centerX, (int) centerY);
-
-											if (yard.grid[row][col] == null)
-											{
-												yard.sunCounter -= plant.getCost();
-												yard.label.setText(String.valueOf(yard.sunCounter));
-
-												startCooldown();
+											if (!yard.isValidPosition(row, col) || yard.grid[row][col] != null) {
+												System.out.println("Tile occupied or invalid at (" + row + ", " + col + ")");
+												break;
 											}
 
+											Plant plant = plantType.getDeclaredConstructor(int.class, int.class).newInstance((int) centerX, (int) centerY);
 											yard.placePlant(plant, root, row, col);
-
+											yard.sunCounter -= plant.getCost();
+											yard.label.setText(String.valueOf(yard.sunCounter));
+											startCooldown();
 										} catch (Exception e) {
 											System.out.println("An exception occurred: " + e);
 										}

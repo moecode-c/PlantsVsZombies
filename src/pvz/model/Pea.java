@@ -5,6 +5,7 @@ import java.io.Serializable;
 import javafx.application.Platform;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.layout.Pane;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
@@ -24,6 +25,10 @@ public class Pea extends Characters implements Serializable, Runnable {
     private final Image firePeaImage;
     private boolean firePeaActive;
     private volatile boolean cleanedUp;
+    private boolean slowEffect;
+    private double slowFactor = 0.5;
+    private long slowDurationMs = 3000;
+    private ColorAdjust tintEffect;
 
     public Pea(int damage, Plant parent) {
         this.damage = damage;
@@ -73,6 +78,9 @@ public class Pea extends Characters implements Serializable, Runnable {
                 });
                 Zombie target = checkForZombieCollision();
                 if (target != null) {
+                    if (slowEffect) {
+                        target.applySlow(slowFactor, slowDurationMs);
+                    }
                     target.takeDamage(damage);
                     peaHitsZombieAudio();
                     break;
@@ -113,12 +121,14 @@ public class Pea extends Characters implements Serializable, Runnable {
                 }
                 if (elementImage.getBoundsInParent().intersects(plant.getElementImage().getBoundsInParent())) {
                     firePeaActive = true;
+                    slowEffect = false; // torchwood burns away ice slowing
                     damage = 40;
                     Platform.runLater(() -> {
                         elementImage.setImage(firePeaImage);
                         elementImage.setPreserveRatio(false);
                         elementImage.setFitWidth(50);
                         elementImage.setFitHeight(37);
+                        elementImage.setEffect(null);
                     });
                     firePeaAudio();
                     return;
@@ -170,6 +180,25 @@ public class Pea extends Characters implements Serializable, Runnable {
 
     public void setDamage(int damage) {
         this.damage = damage;
+    }
+
+    public void enableSlowEffect(double factor, long durationMs) {
+        this.slowEffect = true;
+        if (factor > 0 && factor < 1) {
+            this.slowFactor = factor;
+        }
+        if (durationMs > 0) {
+            this.slowDurationMs = durationMs;
+        }
+    }
+
+    public void setTintHue(double hue) {
+        ColorAdjust adjust = new ColorAdjust();
+        adjust.setHue(hue);
+        adjust.setSaturation(0.6);
+        adjust.setBrightness(0.1);
+        this.tintEffect = adjust;
+        Platform.runLater(() -> elementImage.setEffect(adjust));
     }
 
     public void shot(Zombie zombie) {

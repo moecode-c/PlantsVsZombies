@@ -16,19 +16,27 @@ import javafx.util.Duration;
 public abstract class Zombie extends Characters implements Runnable {
     protected int attackPower;
     protected double speed;
+    private double baseSpeed;
     private volatile boolean isAttacking = false;
     private volatile boolean slowed = false;
+    private PauseTransition slowReset;
 
     public Zombie() {}
 
     public Zombie(int attackPower, double speed, int health) {
         this.attackPower = attackPower;
         this.speed = speed;
+        this.baseSpeed = speed;
         this.health = health;
     }
 
     public boolean isSlowed() { return slowed; }
     public void setSlowed(boolean slowed) { this.slowed = slowed; }
+    public double getBaseSpeed() { return baseSpeed; }
+    public void setBaseSpeed(double baseSpeed) {
+        this.baseSpeed = baseSpeed;
+        this.speed = baseSpeed;
+    }
     public double getAttackPower() { return attackPower; }
     public void setAttackPower(int attackPower) { this.attackPower = attackPower; }
     public double getSpeed() { return speed; }
@@ -79,6 +87,31 @@ public abstract class Zombie extends Characters implements Runnable {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    public synchronized void applySlow(double factor, long durationMs) {
+        if (factor <= 0 || factor >= 1) {
+            factor = 0.5; // default slow factor
+        }
+        if (durationMs <= 0) {
+            durationMs = 3000; // default slow time in ms
+        }
+
+        double slowedSpeed = baseSpeed * factor;
+        setSlowed(true);
+        setSpeed(slowedSpeed);
+
+        if (slowReset != null) {
+            slowReset.stop();
+        }
+
+        PauseTransition reset = new PauseTransition(Duration.millis(durationMs));
+        reset.setOnFinished(event -> {
+            setSpeed(baseSpeed);
+            setSlowed(false);
+        });
+        slowReset = reset;
+        Platform.runLater(reset::play);
     }
 
     @Override

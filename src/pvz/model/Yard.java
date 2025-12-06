@@ -63,6 +63,11 @@ public class Yard extends Thread
 	// Variables specific to each level!
 	public static volatile boolean gameOn = true;
 	private static int zombieSpawnInterval;
+	private static int minSpawnIntervalSeconds = 2;
+	private static int spawnIntervalDecreaseRate = 1;
+	private static int initialSpawnIntervalSeconds = 20;
+	private static int startingSunCount = SUNCOUNTER;
+	private static boolean infiniteLevel = false;
 	public static double timeLeft;
 	public static int sunCounter;
 	private Timeline timeline; // Declare timeline as a class-level variable
@@ -79,13 +84,14 @@ public class Yard extends Thread
 		// Parent level
 		this.parentLevel = parentLevel;
 		activeStage = stage;
+		infiniteLevel = parentLevel.getLevelNumber() == 4;
 
 		// Root pane that has everything on it
 		root = new AnchorPane();
 
-		// Zombie Spawn Interval used in spawnZombie()
-		// zombieSpawnInterval = 4 ;
-		zombieSpawnInterval= 20;
+
+		configureDifficultySettings(parentLevel.getLevelNumber());
+		zombieSpawnInterval = initialSpawnIntervalSeconds;
 
 		// Initialize Characters 2D Array to keep a-hold of Zombies, Plants, LawnMower, and possibly peas.
 		grid = new Characters[ROWS][COLUMNS];
@@ -96,14 +102,93 @@ public class Yard extends Thread
 
 		// Level specific stuff
 	   // levelDuration = parentLevel.getDurationInSeconds();
-		timeLeft = (MINUTES * 60) + PREVIEW_SECONDS;// the game is 4 minutes (4sec*60=4min) for those who don't know
-		sunCounter= SUNCOUNTER;
+		timeLeft = initialTimeForLevel(parentLevel.getLevelNumber());
+		sunCounter = startingSunCount;
 
-		// 50 doesn't matter, the sun counter replaces it
-		label = new Label("50");
+		label = new Label(String.valueOf(sunCounter));
 
 		// Build the yard UI so Main can create a Scene with `yard.root`
 		displayYard();
+	}
+
+	private void configureDifficultySettings(int levelNumber)
+	{
+		switch (levelNumber)
+		{
+			case 1 -> {
+				initialSpawnIntervalSeconds = 24;
+				minSpawnIntervalSeconds = 10;
+				spawnIntervalDecreaseRate = 0;
+				startingSunCount = 150;
+			}
+			case 2 -> {
+				initialSpawnIntervalSeconds = 20;
+				minSpawnIntervalSeconds = 8;
+				spawnIntervalDecreaseRate = 1;
+				startingSunCount = 125;
+			}
+			case 3 -> {
+				initialSpawnIntervalSeconds = 16;
+				minSpawnIntervalSeconds = 6;
+				spawnIntervalDecreaseRate = 1;
+				startingSunCount = 100;
+			}
+			case 4 -> {
+				initialSpawnIntervalSeconds = 14;
+				minSpawnIntervalSeconds = 5;
+				spawnIntervalDecreaseRate = 1;
+				startingSunCount = 125;
+			}
+			case 5 -> {
+				initialSpawnIntervalSeconds = 12;
+				minSpawnIntervalSeconds = 4;
+				spawnIntervalDecreaseRate = 1;
+				startingSunCount = 100;
+			}
+			default -> {
+				initialSpawnIntervalSeconds = 18;
+				minSpawnIntervalSeconds = 5;
+				spawnIntervalDecreaseRate = 1;
+				startingSunCount = SUNCOUNTER;
+			}
+		}
+	}
+
+	private static double initialTimeForLevel(int levelNumber) {
+		return levelNumber == 4 ? Double.POSITIVE_INFINITY : (MINUTES * 60) + PREVIEW_SECONDS;
+	}
+
+	private Zombie createZombieForLevel(int levelNumber, int x, int y, Random random)
+	{
+		double roll = random.nextDouble();
+		return switch (levelNumber)
+		{
+			case 1 -> roll < 0.8 ? new DefaultZombie(x, y) : new ConeZombie(x, y);
+			case 2 -> {
+				if (roll < 0.65) yield new DefaultZombie(x, y);
+				if (roll < 0.85) yield new ConeZombie(x, y);
+				yield new HelmetZombie(x, y);
+			}
+			case 3 -> {
+				if (roll < 0.5) yield new DefaultZombie(x, y);
+				if (roll < 0.8) yield new ConeZombie(x, y);
+				if (roll < 0.95) yield new HelmetZombie(x, y);
+				yield new FootballZombie(x, y);
+			}
+			case 4 -> {
+				if (roll < 0.4) yield new DefaultZombie(x, y);
+				if (roll < 0.7) yield new ConeZombie(x, y);
+				if (roll < 0.9) yield new HelmetZombie(x, y);
+				yield new FootballZombie(x, y);
+			}
+			case 5 -> {
+				if (roll < 0.3) yield new DefaultZombie(x, y);
+				if (roll < 0.55) yield new ConeZombie(x, y);
+				if (roll < 0.8) yield new HelmetZombie(x, y);
+				yield new FootballZombie(x, y);
+			}
+			default -> new DefaultZombie(x, y);
+		};
 	}
 
 	/* a method made to check if the current cell ur trying to place a plant at lies between the
@@ -211,15 +296,14 @@ public class Yard extends Thread
 		int maxx = 1202; // Maximum X position
 		Random random = new Random();
 
-		int minSpawnInterval = 2; // Minimum spawn interval in seconds
-		int spawnIntervalDecreaseRate = 1; // Amount to decrease spawn interval per minute
 		long startTime = System.currentTimeMillis();
+		int levelNumber = parentLevel.getLevelNumber();
 
-		while (gameOn&&timeLeft>0)
+		while (gameOn && (infiniteLevel || timeLeft > 0))
 		{
 			// Decrease the spawn interval dynamically over time
 			long elapsedMinutes = (System.currentTimeMillis() - startTime) / 10000; // Calculate elapsed minutes
-			zombieSpawnInterval = Math.max(minSpawnInterval, zombieSpawnInterval - (int) (elapsedMinutes * spawnIntervalDecreaseRate));
+			zombieSpawnInterval = Math.max(minSpawnIntervalSeconds, zombieSpawnInterval - (int) (elapsedMinutes * spawnIntervalDecreaseRate));
 
 			try {
 				Thread.sleep(zombieSpawnInterval * 1000); // Wait before spawning a new zombie
@@ -227,9 +311,9 @@ public class Yard extends Thread
 				e.printStackTrace();
 			}
 
-			if(!gameOn||timeLeft<0)
+			if(!gameOn || (!infiniteLevel && timeLeft < 0))
 			{
-				zombieSpawnInterval= 25;
+				zombieSpawnInterval = initialSpawnIntervalSeconds;
 				break;
 			}
 
@@ -237,39 +321,7 @@ public class Yard extends Thread
 			int y = specificNumbers[randomIndex];
 			int x = random.nextInt((maxx - minx) + 1) + minx; // Generate random X position within the defined range
 
-			Zombie zombie = null;
-			// Check the level and set the zombie type based on the level number
-			if (this.parentLevel.getLevelNumber() == 1) {
-				// Level 1: Choose between DefaultZombie or HelmetZombie
-				int z = random.nextInt(2) + 1; // Random number between 1 and 2
-				if (z == 1) {
-					zombie = new DefaultZombie(x, y);
-				} else {
-					zombie = new ConeZombie(x, y);
-				}
-			}else if (this.parentLevel.getLevelNumber() == 2) {
-                // Level 2: Choose between DefaultZombie, HelmetZombie, or ConeZombie
-                int z = random.nextInt(3) + 1; // Random number between 1 and 3
-                if (z == 1) {
-                    zombie = new DefaultZombie(x, y);
-                } else if (z == 2) {
-                    zombie = new HelmetZombie(x, y);
-                } else {
-                    zombie = new ConeZombie(x, y);
-                }
-            } else if (this.parentLevel.getLevelNumber() == 3) {
-                // Level 3: Choose between DefaultZombie, HelmetZombie, ConeZombie, or FootballZombie
-                int z = random.nextInt(4) + 1; // Random number between 1 and 4
-                if (z == 1) {
-                    zombie = new DefaultZombie(x, y);
-                } else if (z == 2) {
-                    zombie = new HelmetZombie(x, y);
-                } else if (z == 3) {
-                    zombie = new ConeZombie(x, y);
-                } else {
-                    zombie = new FootballZombie(x, y);
-                }
-            } 
+			Zombie zombie = createZombieForLevel(levelNumber, x, y, random);
 
 			// If zombie is still null (though it shouldn't happen with above conditions), assign a default zombie
 			if (zombie == null) {
@@ -300,20 +352,34 @@ public class Yard extends Thread
 				while (gameOn && finalZombie1.isAlive()) {
 					finalZombie1.move();
 
-					// Check if this specific lawnmower's boundary has been passed
-					for (int i = 0; i < ROWS; i++) {
-						if (lawnMowers[i] != null) {
-							double lawnMowerTop = lawnMowers[i].elementImage.getLayoutY();
-							double lawnMowerBottom = lawnMowers[i].elementImage.getLayoutY() + lawnMowers[i].elementImage.getFitHeight();
-							double zombieCenterY = finalZombie1.getElementImage().getLayoutY() + (finalZombie1.getElementImage().getFitHeight() / 2);
-							double zombieRightEdge = finalZombie1.getElementImage().getLayoutX() + finalZombie1.getElementImage().getFitWidth();
+					ImageView zombieView = finalZombie1.getElementImage();
+					if (zombieView != null) {
+						for (int i = 0; i < ROWS; i++) {
+							LawnMower mower = lawnMowers[i];
+							if (mower == null) continue;
+							ImageView mowerView = mower.getElementImage();
+							if (mowerView == null) continue;
 
-							// Only consider zombies that belong to this row and have completely cleared the lawnmower spot
-							if (zombieCenterY >= lawnMowerTop && zombieCenterY <= lawnMowerBottom &&
-									zombieRightEdge <= HOUSE_BOUNDARY_X) {
+							double mowerTop = mowerView.getLayoutY();
+							double mowerBottom = mowerTop + mowerView.getFitHeight();
+							double zombieCenterY = zombieView.getLayoutY() + (zombieView.getFitHeight() / 2);
+
+							if (zombieCenterY < mowerTop || zombieCenterY > mowerBottom) continue;
+
+							double zombieLeftEdge = zombieView.getLayoutX();
+							double zombieRightEdge = zombieLeftEdge + zombieView.getFitWidth();
+							double mowerRightEdge = mowerView.getLayoutX() + mowerView.getFitWidth();
+
+							if (zombieLeftEdge <= mowerRightEdge && mower.isAlive() && !mower.isActive()) {
+								LawnMower rowMower = mower;
+								Platform.runLater(() -> rowMower.activate(root));
+							}
+
+							boolean mowerSpent = !mower.isAlive();
+							if (mowerSpent && zombieRightEdge <= HOUSE_BOUNDARY_X) {
 								System.out.println("Zombie passed the lawnmower at row: " + i);
 								gameOver();
-								return; // Stop processing once the player loses
+								return;
 							}
 						}
 					}
@@ -332,9 +398,9 @@ public class Yard extends Thread
 	{
 		// Reset game state variables
 		gameOn = true;
-		zombieSpawnInterval= 30;
-		sunCounter = SUNCOUNTER;
-		timeLeft= (MINUTES * 60) + PREVIEW_SECONDS;
+		zombieSpawnInterval = initialSpawnIntervalSeconds;
+		sunCounter = startingSunCount;
+		timeLeft = initialTimeForLevel(parentLevel != null ? parentLevel.getLevelNumber() : 1);
 
 			// Clear all plants and set them inactive
 			plants.forEach(plant -> {
@@ -672,6 +738,9 @@ public class Yard extends Thread
 	// Start the level timer and update the progress bar
 	public void startLevelTimer()
 	{
+		if (infiniteLevel) {
+			return; // No countdown for infinite mode
+		}
 		// Initial progress is 1.0 (100%), and it decreases to 0.0 as timeLeft decreases to 0
 		levelProgressBar.setProgress(1.0);
 
@@ -970,12 +1039,10 @@ public class Yard extends Thread
 		// Create ImageView for the yard background
 		generateYardImageView(root);
 
-		//Create progress bar
-		if (levelProgressBar != null)
-			root.getChildren().add(levelProgressBar);
-
-		// This will not be used but just leave it
-		createLevelDurationBar(root);
+		//Create progress bar only for timed levels
+		if (!infiniteLevel) {
+			createLevelDurationBar(root);
+		}
 
 		// Create Grid Pane
 		GridPane yardGrid = generateGridPane(root);
@@ -997,7 +1064,9 @@ public class Yard extends Thread
 
 		zombiesArrivalAudio();
 
-		startLevelTimer();
+		if (!infiniteLevel) {
+			startLevelTimer();
+		}
 
 	}
 
@@ -1088,6 +1157,12 @@ public class Yard extends Thread
 				break;
 			case 3:
 				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/ChristmasYard.png"));
+				break;
+			case 4:
+				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/halloweenyard.png"));
+				break;
+			case 5:
+				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/candyyard.png"));
 				break;
 			default:
 				break;
@@ -1289,9 +1364,9 @@ public class Yard extends Thread
                 // All cards are unlocked in level 3
                 System.out.println("All cards are unlocked in " + levelNumber);
 
-                // Set the imageview to be christmas as a workaround and for show only
-                PEASHOOTERCARD.setCardImageView(new ImageView("images/cards/PeaShooterCard_christmas.png"));
-                PEASHOOTERCARD.cardImageViewSetProperties(305, 21, 44, 62, true, true);
+				// Use the standard peashooter card image (christmas variant not available in assets)
+				PEASHOOTERCARD.setCardImageView(new ImageView(AssetLoader.loadImage("/pvz/images/cards/PeaShooterCard.png")));
+				PEASHOOTERCARD.cardImageViewSetProperties(305, 21, 44, 62, true, true);
 
                 PEASHOOTERCARD.addToYard(root, yardGrid, this);
                 CHERRYCARD.addToYard(root, yardGrid, this);
@@ -1322,31 +1397,49 @@ public class Yard extends Thread
                 POTATO_CHRISTMAS.draggingImageViewSetProperties(61, 66, true, false);
                 POTATO_CHRISTMAS.hoverImageViewSetProperties(61, 66, true, false);
                 POTATO_CHRISTMAS.addToYard(root, yardGrid, this);
+				break;
+			case 4:
+				// Infinite level with full deck (standard art)
+				PEASHOOTERCARD.setCardImageView(new ImageView(AssetLoader.loadImage("/pvz/images/cards/PeaShooterCard.png")));
+				PEASHOOTERCARD.cardImageViewSetProperties(304, 21, 47, 71, true, true);
+				PEASHOOTERCARD.addToYard(root, yardGrid, this);
 
-                break;
+				SUNFLOWERCARD.addToYard(root, yardGrid, this);
+				POTATOCARD.addToYard(root, yardGrid, this);
+				CHERRYCARD.addToYard(root, yardGrid, this);
+				ICEDPEACARD.addToYard(root, yardGrid, this);
+				TORCHWOODCARD.addToYard(root, yardGrid, this);
+				REPEATERCARD.addToYard(root, yardGrid, this);
+				break;
+			case 5:
+				// Timed level with full standard deck and candy yard background
+				PEASHOOTERCARD.setCardImageView(new ImageView(AssetLoader.loadImage("/pvz/images/cards/PeaShooterCard.png")));
+				PEASHOOTERCARD.cardImageViewSetProperties(304, 21, 47, 71, true, true);
+				PEASHOOTERCARD.addToYard(root, yardGrid, this);
+
+				SUNFLOWERCARD.addToYard(root, yardGrid, this);
+				POTATOCARD.addToYard(root, yardGrid, this);
+				CHERRYCARD.addToYard(root, yardGrid, this);
+				ICEDPEACARD.addToYard(root, yardGrid, this);
+				TORCHWOODCARD.addToYard(root, yardGrid, this);
+				REPEATERCARD.addToYard(root, yardGrid, this);
+				break;
 				
 		}
 	}
 
 	private void generateLawnMowers(AnchorPane root)
 	{
-		// Create Lawn mowers on the screen.
 		lawnMowers = new LawnMower[ROWS];
+		int[] rowPositions = {167, 251, 339, 425, 514};
 		for (int i = 0; i < ROWS; i++)
 		{
-			// Create instance
-			lawnMowers[i] = new LawnMower(i);
-			lawnMowers[i].getElementImage().setLayoutX(HOUSE_BOUNDARY_X);
+			LawnMower mower = new LawnMower(i);
+			mower.getElementImage().setLayoutX(HOUSE_BOUNDARY_X);
+			mower.getElementImage().setLayoutY(rowPositions[i]);
+			mower.appear(root);
+			lawnMowers[i] = mower;
 		}
-
-		// Add lawnmowers to the root pane.
-		lawnMowers[0].getElementImage().setLayoutY(167 );
-		lawnMowers[1].getElementImage().setLayoutY(251);
-		lawnMowers[2].getElementImage().setLayoutY(339);
-		lawnMowers[3].getElementImage().setLayoutY(425);
-		lawnMowers[4].getElementImage().setLayoutY(514);
-
-		root.getChildren().addAll(lawnMowers[0].getElementImage(),lawnMowers[1].getElementImage(),lawnMowers[2].getElementImage(),lawnMowers[3].getElementImage(),lawnMowers[4].getElementImage());
 	}
 
 	public void generateSunCounter()
