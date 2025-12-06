@@ -18,7 +18,10 @@ public class Peashooter extends Plant {
         this();
         super.x = posX;
         super.y = posY;
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/peashooter.gif"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartplants/pixelPeaShooter.gif"
+            : "images/plants/peashooter.gif";
+        ImageView sprite = new ImageView(AssetLoader.loadImage(spritePath));
         sprite.setFitWidth(90);
         sprite.setFitHeight(85);
         sprite.setPreserveRatio(true);

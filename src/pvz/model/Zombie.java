@@ -145,23 +145,28 @@ public abstract class Zombie extends Characters implements Runnable {
         zombieEatingAudio();
         double originalSpeed = this.getSpeed();
         setSpeed(0);
+        boolean pixel = Yard.isPixelArtMode();
         if (this instanceof FootballZombie) {
-            elementImage.setImage(AssetLoader.loadImage("images/zombies/FootballZombieAttack.gif"));
+            String path = pixel ? "images/pixelart/pixelartzombies/PixelFootballZombieAttack.gif" : "images/zombies/FootballZombieAttack.gif";
+            elementImage.setImage(AssetLoader.loadImage(path));
             elementImage.setFitWidth(120);
             elementImage.setFitHeight(125);
             elementImage.setPreserveRatio(true);
         } else if (this instanceof ConeZombie) {
-            elementImage.setImage(AssetLoader.loadImage("images/zombies/ConeheadZombieAttack.gif"));
+            String path = pixel ? "images/pixelart/pixelartzombies/PixelConeHeadZombieAttack.gif" : "images/zombies/ConeheadZombieAttack.gif";
+            elementImage.setImage(AssetLoader.loadImage(path));
             elementImage.setFitHeight(155);
             elementImage.setFitWidth(134);
             elementImage.setPreserveRatio(true);
         } else if (this instanceof DefaultZombie) {
-            elementImage.setImage(AssetLoader.loadImage("images/zombies/ZombieAttack.gif"));
+            String path = pixel ? "images/pixelart/pixelartzombies/PixelZombieAttack.gif" : "images/zombies/ZombieAttack.gif";
+            elementImage.setImage(AssetLoader.loadImage(path));
             elementImage.setFitHeight(155);
             elementImage.setFitWidth(134);
             elementImage.setPreserveRatio(true);
         } else if (this instanceof HelmetZombie) {
-            elementImage.setImage(AssetLoader.loadImage("images/zombies/BucketheadZombieAttack.gif"));
+            String path = pixel ? "images/pixelart/pixelartzombies/PixelBucketHeadZombieAttack.gif" : "images/zombies/BucketheadZombieAttack.gif";
+            elementImage.setImage(AssetLoader.loadImage(path));
             elementImage.setFitHeight(155);
             elementImage.setFitWidth(134);
             elementImage.setPreserveRatio(true);
@@ -177,23 +182,28 @@ public abstract class Zombie extends Characters implements Runnable {
             } finally {
                 isAttacking = false;
                 Platform.runLater(() -> {
+                    boolean px = Yard.isPixelArtMode();
                     if (this instanceof FootballZombie && this.isAlive()) {
-                        elementImage.setImage(AssetLoader.loadImage("images/zombies/FootballZombie.gif"));
+                        String path = px ? "images/pixelart/pixelartzombies/PixelFootballZombie.gif" : "images/zombies/FootballZombie.gif";
+                        elementImage.setImage(AssetLoader.loadImage(path));
                         elementImage.setFitWidth(120);
                         elementImage.setFitHeight(125);
                         elementImage.setPreserveRatio(true);
                     } else if (this instanceof DefaultZombie && this.isAlive()) {
-                        elementImage.setImage(AssetLoader.loadImage("images/zombies/Zombie.gif"));
+                        String path = px ? "images/pixelart/pixelartzombies/PixelDefaultZombie.gif" : "images/zombies/Zombie.gif";
+                        elementImage.setImage(AssetLoader.loadImage(path));
                         elementImage.setFitHeight(155);
                         elementImage.setFitWidth(134);
                         elementImage.setPreserveRatio(true);
                     } else if (this instanceof ConeZombie && this.isAlive()) {
-                        elementImage.setImage(AssetLoader.loadImage("images/zombies/ConeZombie.gif"));
+                        String path = px ? "images/pixelart/pixelartzombies/PixelConeHeadZombie.gif" : "images/zombies/ConeZombie.gif";
+                        elementImage.setImage(AssetLoader.loadImage(path));
                         elementImage.setFitHeight(155);
                         elementImage.setFitWidth(134);
                         elementImage.setPreserveRatio(true);
                     } else if (this instanceof HelmetZombie && this.isAlive()) {
-                        elementImage.setImage(AssetLoader.loadImage("images/zombies/BucketheadZombie.gif"));
+                        String path = px ? "images/pixelart/pixelartzombies/PixelBucketHeadZombie.gif" : "images/zombies/BucketheadZombie.gif";
+                        elementImage.setImage(AssetLoader.loadImage(path));
                         elementImage.setFitHeight(155);
                         elementImage.setFitWidth(134);
                         elementImage.setPreserveRatio(true);

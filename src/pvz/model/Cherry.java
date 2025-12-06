@@ -18,7 +18,10 @@ public class Cherry extends Plant {
         this();
         this.x = x;
         this.y = y;
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/cherry.png"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartplants/pixelCherry.png"
+            : "images/plants/cherry.png";
+        ImageView sprite = new ImageView(AssetLoader.loadImage(spritePath));
         sprite.setFitWidth(90);
         sprite.setFitHeight(90);
         sprite.setPreserveRatio(true);

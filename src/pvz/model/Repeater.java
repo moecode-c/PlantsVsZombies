@@ -19,7 +19,10 @@ public class Repeater extends Plant {
         this();
         this.x = x;
         this.y = y;
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/repeater.gif"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartplants/PixelRepeater.gif"
+            : "images/plants/repeater.gif";
+        ImageView sprite = new ImageView(AssetLoader.loadImage(spritePath));
         sprite.setFitWidth(90);
         sprite.setFitHeight(85);
         sprite.setPreserveRatio(true);

@@ -23,7 +23,10 @@ public class Sunflower extends Plant {
         this();
         super.x = posX;
         super.y = posY;
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/sunflower.gif"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartplants/PixelSunFlower.gif"
+            : "images/plants/sunflower.gif";
+        ImageView sprite = new ImageView(AssetLoader.loadImage(spritePath));
         sprite.setFitWidth(73);
         sprite.setFitHeight(70);
         sprite.setPreserveRatio(true);

@@ -45,6 +45,7 @@ public class Yard extends Thread
 	public static Level parentLevel;
 	private static Stage activeStage;
 	private static String activePlayerUsername;
+	private static boolean pixelArtMode;
 
 	// YARD CONSTANT VARIABLES
 	public static final int ROWS = 5, COLUMNS = 9, WIDTH = 1278, HEIGHT = 650, MINUTES = 4, SUNCOUNTER = 50, PREVIEW_SECONDS = 15;
@@ -85,6 +86,7 @@ public class Yard extends Thread
 		this.parentLevel = parentLevel;
 		activeStage = stage;
 		infiniteLevel = parentLevel.getLevelNumber() == 4;
+		pixelArtMode = parentLevel.getLevelNumber() == 5;
 
 		// Root pane that has everything on it
 		root = new AnchorPane();
@@ -682,6 +684,10 @@ public class Yard extends Thread
 		activePlayerUsername = username;
 	}
 
+	public static boolean isPixelArtMode() {
+		return pixelArtMode;
+	}
+
 	private static void showMenuInfo(String message) {
 		Alert alert = new Alert(Alert.AlertType.INFORMATION, message);
 		alert.setHeaderText(null);
@@ -1153,7 +1159,7 @@ public class Yard extends Thread
 		switch(parentLevel.getLevelNumber())
 		{
 			case 2:
-				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/pixelartyard.png"));
+				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/candyyard.png"));
 				break;
 			case 3:
 				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/ChristmasYard.png"));
@@ -1162,7 +1168,7 @@ public class Yard extends Thread
 				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/halloweenyard.png"));
 				break;
 			case 5:
-				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/candyyard.png"));
+				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/pixelartyard.png"));
 				break;
 			default:
 				break;
