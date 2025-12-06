@@ -34,6 +34,7 @@ public class Level implements Serializable {
         return switch (levelNumber) {
             case 2 -> 300; // 5 minutes
             case 3 -> 360; // 6 minutes
+            case 5 -> 360; // 6 minutes
             default -> 240; // 4 minutes for level 1 and beyond
         };
     }

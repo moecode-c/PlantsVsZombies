@@ -256,31 +256,34 @@ public class GameMenuPane extends StackPane {
         double overlayX = overlayImage != null ? overlayImage.getLayoutX() : 120;
         double overlayY = overlayImage != null ? overlayImage.getLayoutY() : 100;
 
-        double[][] levelBounds = {
-            {overlayX + 20,  overlayY + 20,  115, 230}, // Level 1
-            {overlayX + 140, overlayY + 20,  115, 230}, // Level 2
-            {overlayX + 260, overlayY + 20,  115, 230}, // Level 3
-            {overlayX + 380, overlayY + 20,  115, 230}, // Level 4
-            {overlayX + 500, overlayY + 20,  115, 230}  // Level 5
-        };
+        double buttonWidth = 95;
+        double buttonHeight = 130;
+        double spacing = 18;
+        double firstX = overlayX + 85;
+        double rowY = overlayY + 55;
 
-        for (int i = 0; i < levelBounds.length; i++) {
-            addLevelButton(levelBounds[i], i + 1);
+        // Show levels 1-5 (level 4 is infinite mode)
+        for (int i = 0; i < 5; i++) {
+            double x = firstX + i * (buttonWidth + spacing);
+            double[] bounds = {x, rowY, buttonWidth, buttonHeight};
+            addLevelButton(bounds, i + 1);
         }
 
-        double[] backBounds = {overlayX + 220, overlayY + 260, 150, 80};
+        double[] backBounds = {overlayX + 250, overlayY + 255, 140, 70};
         addLevelButton(backBounds, 0);
     }
 
     private void addLevelButton(double[] bounds, int levelNumber) {
-        Button button = new Button();
+        Button button = new Button(levelNumber == 0 ? "BACK" : "L" + levelNumber);
         button.setLayoutX(bounds[0]);
         button.setLayoutY(bounds[1]);
         button.setPrefWidth(bounds[2]);
         button.setPrefHeight(bounds[3]);
-        button.setOpacity(0.08);
+        button.setFont(Font.font("Arial", FontWeight.BOLD, levelNumber == 0 ? 18 : 16));
+        button.setTextFill(Color.WHITE);
+        button.setOpacity(0.9);
         button.setFocusTraversable(false);
-        button.setStyle("-fx-background-color: transparent;");
+        button.setStyle(String.format("-fx-background-color: %s; -fx-border-color: white; -fx-border-width: 2; -fx-background-radius: 8;", debugColorForLevel(levelNumber)));
         button.setOnAction(e -> {
             if (levelNumber == 0) {
                 hideOverlay();
@@ -289,6 +292,17 @@ public class GameMenuPane extends StackPane {
             }
         });
         overlayLayer.getChildren().add(button);
+    }
+
+    private String debugColorForLevel(int levelNumber) {
+        return switch (levelNumber) {
+            case 1 -> "rgba(255, 165, 0, 0.55)";
+            case 2 -> "rgba(144, 238, 144, 0.55)";
+            case 3 -> "rgba(100, 149, 237, 0.55)";
+            case 4 -> "rgba(64, 224, 208, 0.55)";
+            case 5 -> "rgba(255, 105, 180, 0.55)";
+            default -> "rgba(128, 128, 128, 0.55)";
+        };
     }
 
     private void handleLevelSelection(int levelNumber) {
