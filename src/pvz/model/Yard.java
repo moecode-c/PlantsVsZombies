@@ -1153,7 +1153,7 @@ public class Yard extends Thread
 		switch(parentLevel.getLevelNumber())
 		{
 			case 2:
-				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/nightYard.png"));
+				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/pixelartyard.png"));
 				break;
 			case 3:
 				yardImageView.setImage(AssetLoader.loadImage("/pvz/images/yard-related/ChristmasYard.png"));

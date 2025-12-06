@@ -11,7 +11,8 @@ public class Sunflower_Christmas extends Sunflower {
 
     public Sunflower_Christmas(int x, int y) {
         super(x, y);
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/sunflower_christmas.gif"));
+        // Use the existing Christmas sunflower art available in assets
+        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/sunflowerChristmas.gif"));
         sprite.setFitWidth(73);
         sprite.setFitHeight(70);
         sprite.setPreserveRatio(true);

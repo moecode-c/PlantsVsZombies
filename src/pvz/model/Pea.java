@@ -119,22 +119,43 @@ public class Pea extends Characters implements Serializable, Runnable {
                 if (!(plant instanceof TorchWood) || !plant.isAlive() || plant.getElementImage() == null) {
                     continue;
                 }
+
+                // Prefer a lane-based check so peas ignite even if sprites do not perfectly overlap.
+                boolean sameRow = parent != null && plant.getX() == parent.getX();
+                double peaLeft = elementImage.getLayoutX();
+                double peaRight = peaLeft + elementImage.getFitWidth();
+                double torchLeft = plant.getElementImage().getLayoutX();
+                double torchRight = torchLeft + plant.getElementImage().getFitWidth();
+                boolean crossesTorch = peaRight >= torchLeft && peaLeft <= torchRight;
+
+                if (sameRow && crossesTorch) {
+                    ignitePea();
+                    return;
+                }
+
+                // Fallback to bounds intersection in case rows were not set properly.
                 if (elementImage.getBoundsInParent().intersects(plant.getElementImage().getBoundsInParent())) {
-                    firePeaActive = true;
-                    slowEffect = false; // torchwood burns away ice slowing
-                    damage = 40;
-                    Platform.runLater(() -> {
-                        elementImage.setImage(firePeaImage);
-                        elementImage.setPreserveRatio(false);
-                        elementImage.setFitWidth(50);
-                        elementImage.setFitHeight(37);
-                        elementImage.setEffect(null);
-                    });
-                    firePeaAudio();
+                    ignitePea();
                     return;
                 }
             }
         }
+    }
+
+    private void ignitePea() {
+        firePeaActive = true;
+        slowEffect = false; // torchwood burns away ice slowing
+        damage = 25; // Buffed but not overpowered
+
+        // Tint the standard pea orange instead of swapping to a fire gif
+        setTintHue(0.08); // ~orange hue shift
+        Platform.runLater(() -> {
+            elementImage.setImage(normalPeaImage);
+            elementImage.setPreserveRatio(true);
+            elementImage.setFitWidth(34);
+            elementImage.setFitHeight(34);
+        });
+        firePeaAudio();
     }
 
     private synchronized Zombie checkForZombieCollision() {
