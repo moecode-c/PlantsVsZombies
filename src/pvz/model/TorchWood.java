@@ -13,7 +13,7 @@ public class TorchWood extends Plant {
         this();
         this.x = x;
         this.y = y;
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/torchWood.png"));
+        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/torchWood.gif"));
         sprite.setFitWidth(80);
         sprite.setFitHeight(100);
         sprite.setPreserveRatio(true);

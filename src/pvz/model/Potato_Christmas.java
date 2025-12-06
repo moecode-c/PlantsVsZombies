@@ -11,7 +11,8 @@ public class Potato_Christmas extends Potato {
 
     public Potato_Christmas(int x, int y) {
         super(x, y);
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/potato_christmas.png"));
+        // Use the existing Christmas potato art available in assets
+        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/potatoChristmas.gif"));
         sprite.setFitWidth(59);
         sprite.setFitHeight(66);
         sprite.setPreserveRatio(true);
