@@ -11,12 +11,13 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
-import javafx.scene.paint.Color;
+import pvz.model.LoadingScreen;
 import pvz.model.PlayerStore;
 import pvz.model.Yard;
 import pvz.ui.AuthFormPane;
 import pvz.ui.GameMenuPane;
 import pvz.ui.ImageMenuPane;
+import pvz.ui.WallNutBowlingPane;
 
 /**
  * Application entry point. Shows the image-based main menu and opens small
@@ -27,33 +28,29 @@ import pvz.ui.ImageMenuPane;
  *   hotspot bounds while tuning.
  */
 public class Main extends Application {
-        private MediaPlayer menuMusicPlayer;
+    private MediaPlayer menuMusicPlayer;
     private final PlayerStore store = new PlayerStore();
     private boolean debug = true;
+    private StackPane rootPane;
+    private Scene menuScene;
 
     @Override
     public void start(Stage stage) {
-            // Play menu music
-            playMenuMusic();
+        playMenuMusic();
         store.load();
 
-        // Root stack so we can overlay the auth form as a popover above the menu
-        StackPane root = new StackPane();
-        // Menu draws the background and handles hover image swapping.
+        rootPane = new StackPane();
         ImageMenuPane menu = new ImageMenuPane();
-        root.getChildren().add(menu);
-        // Wire up click callbacks from hotspots (Sign In / Sign Up / Exit)
+        rootPane.getChildren().add(menu);
+
         menu.setHandler(new ImageMenuPane.Handler() {
-            @Override public void onSignIn() { showAuth(root, stage, AuthFormPane.Mode.SIGN_IN); }
-            @Override public void onSignUp() { showAuth(root, stage, AuthFormPane.Mode.SIGN_UP); }
+            @Override public void onSignIn() { showAuth(rootPane, stage, AuthFormPane.Mode.SIGN_IN); }
+            @Override public void onSignUp() { showAuth(rootPane, stage, AuthFormPane.Mode.SIGN_UP); }
             @Override public void onExit() { Platform.exit(); }
         });
 
-        // Size the window to exactly match the image so the overlay is pixel-perfect
-        Scene scene = new Scene(root, menu.getPrefWidth(), menu.getPrefHeight());
-        
-
-        stage.setScene(scene);
+        menuScene = new Scene(rootPane, menu.getPrefWidth(), menu.getPrefHeight());
+        stage.setScene(menuScene);
         stage.setTitle("PvZ Menu");
         stage.setResizable(false);
         stage.sizeToScene();
@@ -66,15 +63,13 @@ public class Main extends Application {
     }
 
     private void showAuth(StackPane root, Stage stage, AuthFormPane.Mode mode) {
-            playMenuMusic();
-        // Dimmer to block clicks to the menu and give a popover feel
+        playMenuMusic();
         Pane dim = new Pane();
         dim.setStyle("-fx-background-color: rgba(0,0,0,0.45);");
-        // Use Double.MAX_VALUE to allow the Pane to grow to fill available space
         dim.setMinSize(Double.MAX_VALUE, Double.MAX_VALUE);
         dim.prefWidthProperty().bind(root.widthProperty());
         dim.prefHeightProperty().bind(root.heightProperty());
-        dim.setOnMouseClicked(e -> {}); // consume clicks
+        dim.setOnMouseClicked(e -> {});
 
         AuthFormPane form = new AuthFormPane(mode);
         form.setHandler(new AuthFormPane.Handler() {
@@ -86,35 +81,35 @@ public class Main extends Application {
                 System.out.println("DEBUG: mode=" + mode + ", username=" + username + ", password=" + password + ", ok=" + ok);
                 if (ok) {
                     if (mode == AuthFormPane.Mode.SIGN_UP) {
-                        // Optionally sign in immediately after creating an account
                         store.signIn(username, password);
                     }
                     show(Alert.AlertType.INFORMATION, (mode==AuthFormPane.Mode.SIGN_IN?"Signed in":"Account created") + " successfully.");
                     root.getChildren().removeAll(dim, form);
-                    // If signed in, show game menu
                     if (mode == AuthFormPane.Mode.SIGN_IN || mode == AuthFormPane.Mode.SIGN_UP) {
                         System.out.println("DEBUG: Showing game menu for " + username);
                         showGameMenu(root, stage, username);
                     }
                 } else {
-                    System.out.println("DEBUG: Sign-in or sign-up failed for " + username);
                     show(Alert.AlertType.ERROR, mode==AuthFormPane.Mode.SIGN_IN ? "Invalid username or password." : "Username exists or invalid.");
                 }
             }
             @Override public void onBack() { root.getChildren().removeAll(dim, form); }
         });
-        // Add on top of the menu as a popover
         root.getChildren().addAll(dim, form);
         StackPane.setAlignment(form, Pos.CENTER);
-        form.requestFocus(); // so ENTER works immediately
+        form.requestFocus();
     }
 
     private void showGameMenu(StackPane root, Stage stage, String username) {
-        // Clear the root and show game menu
+        if (menuScene != null && stage.getScene() != menuScene) {
+            stage.setScene(menuScene);
+        }
+        stage.setTitle("PvZ Menu");
+        stage.setResizable(false);
+        stage.sizeToScene();
         root.getChildren().clear();
         GameMenuPane gameMenu = new GameMenuPane(username);
         root.getChildren().add(gameMenu);
-        // Adjust username position (x, y in pixels, fontSize, color)
         gameMenu.setUsernamePosition(55, 100, 18, javafx.scene.paint.Color.WHITE);
         gameMenu.setHandler(new GameMenuPane.Handler() {
             @Override public void onPlay() {
@@ -124,10 +119,12 @@ public class Main extends Application {
                 show(Alert.AlertType.INFORMATION, "Options feature coming soon!");
             }
             @Override public void onMore() {
-                show(Alert.AlertType.INFORMATION, "More feature coming soon!");
+                // The minigames overlay already appears when the More hotspot is clicked.
+            }
+            @Override public void onWalnutMinigame() {
+                showWalnutMiniGame(rootPane, stage, username);
             }
             @Override public void onLogout() {
-                // Ask for confirmation before logging out
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setTitle("Logout");
                 confirm.setHeaderText("Logout");
@@ -135,7 +132,6 @@ public class Main extends Application {
                 if (confirm.showAndWait().isPresent() && 
                     confirm.getResult() == javafx.scene.control.ButtonType.OK) {
                     store.signOut();
-                    // Return to main menu
                     root.getChildren().clear();
                     ImageMenuPane menu = new ImageMenuPane();
                     root.getChildren().add(menu);
@@ -149,18 +145,15 @@ public class Main extends Application {
                 }
             }
             @Override public void onDeleteAccount() {
-                // Ask for confirmation before deleting account
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setTitle("Delete Account");
                 confirm.setHeaderText("Delete Account");
                 confirm.setContentText("Are you sure you want to delete your account? This cannot be undone.");
                 if (confirm.showAndWait().isPresent() && 
                     confirm.getResult() == javafx.scene.control.ButtonType.OK) {
-                    // Delete account from store
                     if (store.deleteAccount(username, "")) {
                         show(Alert.AlertType.INFORMATION, "Account deleted successfully.");
                         store.signOut();
-                        // Return to main menu
                         root.getChildren().clear();
                         ImageMenuPane menu = new ImageMenuPane();
                         root.getChildren().add(menu);
@@ -176,7 +169,6 @@ public class Main extends Application {
                 }
             }
             @Override public void onExit() {
-                // Ask for confirmation before exiting
                 Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
                 confirm.setTitle("Exit");
                 confirm.setHeaderText("Exit Application");
@@ -195,7 +187,23 @@ public class Main extends Application {
         });
     }
 
-    // Play background music for menu/auth screens
+    private void showWalnutMiniGame(StackPane root, Stage stage, String username) {
+        stopMenuMusic();
+        LoadingScreen.show(stage, () -> Platform.runLater(() -> showWalnutScene(stage, username)));
+    }
+
+    private void showWalnutScene(Stage stage, String username) {
+        WallNutBowlingPane pane = new WallNutBowlingPane(() -> {
+            showGameMenu(rootPane, stage, username);
+            playMenuMusic();
+        });
+        Scene minigameScene = new Scene(pane, WallNutBowlingPane.WIDTH, WallNutBowlingPane.HEIGHT);
+        stage.setScene(minigameScene);
+        stage.setTitle("PvZ - Wall-nut Bowling");
+        stage.setResizable(false);
+        stage.sizeToScene();
+    }
+
     private void playMenuMusic() {
         if (menuMusicPlayer == null) {
             try {
@@ -214,8 +222,6 @@ public class Main extends Application {
     private void stopMenuMusic() {
         if (menuMusicPlayer != null) menuMusicPlayer.stop();
     }
-
-    
 
     public static void main(String[] args) { launch(args); }
 }
