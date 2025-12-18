@@ -193,7 +193,7 @@ public class Main extends Application {
     }
 
     private void showWalnutScene(Stage stage, String username) {
-        WallNutBowlingPane pane = new WallNutBowlingPane(() -> {
+        WallNutBowlingPane pane = new WallNutBowlingPane(stage, () -> {
             showGameMenu(rootPane, stage, username);
             playMenuMusic();
         });
