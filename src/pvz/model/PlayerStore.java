@@ -1,33 +1,32 @@
 package pvz.model;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Simple file-backed user store.
  *
- * Storage format (very small and easy to read for this demo):
- * - data/users.txt    -> one user per line: username\tpassword
- * - data/session.txt  -> a single line with the username of the signed-in user
+ * Storage format (binary serialized):
+ * - data/users.bin    -> serialized HashMap of users and passwords
+ * - data/session.bin  -> serialized username string of the signed-in user
  *
  * Notes
- * - This is intentionally simple/plain-text for learning purposes. Don't store
- *   real passwords like this in production. Use hashing + salting and proper
+ * - This uses binary serialization for compact storage.
+ * - Don't store real passwords like this in production. Use hashing + salting and proper
  *   credential storage instead.
  */
 public class PlayerStore {
-    // Where we keep the tiny text files for this demo (relative to app working dir)
+    // Where we keep the binary files for this demo (relative to app working dir)
     private static final Path DATA_DIR = Path.of("data");
-    private static final Path USERS_FILE = DATA_DIR.resolve("users.txt");
-    private static final Path SESSION_FILE = DATA_DIR.resolve("session.txt");
+    private static final Path USERS_FILE = DATA_DIR.resolve("users.bin");
+    private static final Path SESSION_FILE = DATA_DIR.resolve("session.bin");
 
     /** All registered users for this run (keyed by username). */
     private final Map<String, Player> users = new HashMap<>();
@@ -49,21 +48,14 @@ public class PlayerStore {
         users.put(username, p);
         passwords.put(username, password);
 
-        // Append to file (create directory/file if they don't exist)
+        // Save updated users to binary file
         ensureDataDir();
-        String line = username + "\t" + password + System.lineSeparator();
         try {
-            Files.writeString(
-                    USERS_FILE,
-                    line,
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.APPEND
-            );
+            saveToBinary();
         } catch (IOException e) {
             // If we can't persist, roll back the in-memory add for consistency
             users.remove(username);
+            passwords.remove(username);
             return false;
         }
         return true;
@@ -100,16 +92,10 @@ public class PlayerStore {
         users.remove(username);
         passwords.remove(username);
 
-        // Rewrite users.txt without this user
+        // Rewrite users binary file without this user
         ensureDataDir();
         try {
-            List<String> lines = users.values().stream()
-                    .map(u -> u.getUsername() + "\t" + /* demo, plain text */ getPasswordFor(u))
-                    .collect(Collectors.toList());
-            Files.write(USERS_FILE, lines, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE);
+            saveToBinary();
         } catch (IOException e) {
             // If rewrite fails, reload from disk to avoid diverging state
             reloadFromDisk();
@@ -128,64 +114,62 @@ public class PlayerStore {
     /** Load users and session from disk into memory (idempotent and cheap). */
     public synchronized void load() { reloadFromDisk(); }
 
-    /** Save all users back to users.txt and current session (if any). */
+    /** Save all users back to users.bin and current session (if any). */
     public synchronized void save() {
         ensureDataDir();
         try {
-            List<String> lines = users.values().stream()
-                    .map(u -> u.getUsername() + "\t" + getPasswordFor(u))
-                    .collect(Collectors.toList());
-            Files.write(USERS_FILE, lines, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE);
+            saveToBinary();
         } catch (IOException ignored) { }
         if (current != null) writeSession(current.getUsername());
     }
 
-    /** Read users.txt and session.txt freshly. */
+    /** Read users.bin and session.bin freshly. */
     private void reloadFromDisk() {
         users.clear();
         passwords.clear();
         // Users
         if (Files.exists(USERS_FILE)) {
-            try {
-                for (String line : Files.readAllLines(USERS_FILE, StandardCharsets.UTF_8)) {
-                    if (line.isBlank()) continue;
-                    int tab = line.indexOf('\t');
-                    String u = tab >= 0 ? line.substring(0, tab) : line;
-                    String pw = tab >= 0 ? line.substring(tab + 1) : "";
-                    users.put(u, new Player(u, pw));
-                    passwords.put(u, pw);
-                }
-            } catch (IOException ignored) { }
+            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(USERS_FILE))) {
+                @SuppressWarnings("unchecked")
+                Map<String, Player> loadedUsers = (Map<String, Player>) ois.readObject();
+                @SuppressWarnings("unchecked")
+                Map<String, String> loadedPasswords = (Map<String, String>) ois.readObject();
+                users.putAll(loadedUsers);
+                passwords.putAll(loadedPasswords);
+            } catch (IOException | ClassNotFoundException ignored) { }
         }
         // Session
         current = null;
         if (Files.exists(SESSION_FILE)) {
-            try {
-                List<String> lines = Files.readAllLines(SESSION_FILE, StandardCharsets.UTF_8);
-                if (!lines.isEmpty()) {
-                    String u = lines.get(0).trim();
-                    Player p = users.get(u);
-                    if (p != null) current = p; // only set if user still exists
-                }
-            } catch (IOException ignored) { }
+            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(SESSION_FILE))) {
+                String u = (String) ois.readObject();
+                Player p = users.get(u);
+                if (p != null) current = p; // only set if user still exists
+            } catch (IOException | ClassNotFoundException ignored) { }
         }
     }
 
-    /** Write session.txt containing just the username. */
+    /** Write session.bin containing just the username. */
     private void writeSession(String username) {
         ensureDataDir();
-        try {
-            Files.writeString(SESSION_FILE, username + System.lineSeparator(), StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(SESSION_FILE,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE))) {
+            oos.writeObject(username);
         } catch (IOException ignored) { }
+    }
+
+    /** Save users and passwords maps to binary file. */
+    private void saveToBinary() throws IOException {
+        try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(USERS_FILE,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE))) {
+            oos.writeObject(users);
+            oos.writeObject(passwords);
+        }
     }
 
     /**
      * Demo helper: return the plain-text password we keep alongside the user
-     * so we can rewrite users.txt. (Never do this in a real app.)
+     * so we can rewrite users.bin. (Never do this in a real app.)
      */
     private String getPasswordFor(Player u) { return passwords.getOrDefault(u.getUsername(), ""); }
 
