@@ -8,7 +8,10 @@ import pvz.util.AssetLoader;
 public class FootballZombie extends Zombie {
     public FootballZombie() {
         super(20, 0.8, 225);
-        ImageView view = new ImageView(AssetLoader.loadImage("images/zombies/FootballZombie.gif"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartzombies/PixelFootballZombie.gif"
+            : "images/zombies/FootballZombie.gif";
+        ImageView view = new ImageView(AssetLoader.loadImage(spritePath));
         view.setFitWidth(120);
         view.setFitHeight(125);
         view.setPreserveRatio(true);

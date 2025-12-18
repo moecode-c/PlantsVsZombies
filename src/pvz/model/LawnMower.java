@@ -17,7 +17,10 @@ public class LawnMower extends Characters {
     public LawnMower(int row) {
         this.row = row;
         this.health = Integer.MAX_VALUE;
-        ImageView view = new ImageView(AssetLoader.loadImage("images/yard-related/lawnmower.png"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartzombies/PixelLawnCleanerImage1.png"
+            : "images/yard-related/lawnmower.png";
+        ImageView view = new ImageView(AssetLoader.loadImage(spritePath));
         view.setFitWidth(90);
         view.setFitHeight(70);
         view.setPreserveRatio(true);

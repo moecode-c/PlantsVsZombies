@@ -16,7 +16,10 @@ public class IcedPeashooter extends Plant {
         this();
         this.x = x;
         this.y = y;
-        ImageView sprite = new ImageView(AssetLoader.loadImage("images/plants/icedpeashooter.gif"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartplants/pixelIcePeaShooter.gif"
+            : "images/plants/icedpeashooter.gif";
+        ImageView sprite = new ImageView(AssetLoader.loadImage(spritePath));
         sprite.setFitWidth(90);
         sprite.setFitHeight(85);
         sprite.setPreserveRatio(true);

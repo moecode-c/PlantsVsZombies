@@ -7,7 +7,10 @@ import pvz.util.AssetLoader;
 public class HelmetZombie extends Zombie {
     public HelmetZombie() {
         super(10, 0.4, 150);
-        elementImage = new ImageView(AssetLoader.loadImage("images/zombies/BucketheadZombie.gif"));
+        String spritePath = Yard.isPixelArtMode()
+            ? "images/pixelart/pixelartzombies/PixelBucketHeadZombie.gif"
+            : "images/zombies/BucketheadZombie.gif";
+        elementImage = new ImageView(AssetLoader.loadImage(spritePath));
         elementImage.setFitWidth(135);
         elementImage.setFitHeight(120);
         elementImage.setPreserveRatio(true);
