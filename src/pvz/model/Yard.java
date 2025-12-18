@@ -665,6 +665,10 @@ public class Yard extends Thread
 					Platform.exit();
 				}
 
+				@Override public void onWalnutMinigame() {
+					showMenuInfo("Wall-nut Bowling is not available from inside a running level.");
+				}
+
 				@Override public void onLevelSelected(int level) {
 					setActivePlayerUsername(username);
 					Level nextLevel = new Level(level);

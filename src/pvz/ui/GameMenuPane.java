@@ -24,6 +24,7 @@ public class GameMenuPane extends StackPane {
         void onLogout();
         void onDeleteAccount();
         void onExit();
+        void onWalnutMinigame();
         default void onLevelSelected(int level) {}
     }
 
@@ -33,12 +34,17 @@ public class GameMenuPane extends StackPane {
     private final Image hoverMore;
     private final Image hoverExit;
     private final Image playMenuImg;
+    private final Image minigamesImg;
+    private final Image walnutIconImg;
 
     private final ImageView view;
     private final Pane baseLayer;
     private final Pane overlayLayer;
     private final ImageView overlayImage;
     private final Label usernameLabel;
+    private final Pane minigamesLayer;
+    private final ImageView minigamesView;
+    private final ImageView walnutIconView;
 
     private Rectangle2D rPlay;
     private Rectangle2D rOptions;
@@ -47,8 +53,11 @@ public class GameMenuPane extends StackPane {
     private Rectangle2D rDelete;
     private Rectangle2D rExit;
     private Rectangle2D rExit2;
+    private Rectangle2D rBackToMenu;
+    private Rectangle2D rWalnutSlot;
 
     private boolean showingLevelOverlay;
+    private boolean showingMinigamesOverlay;
 
     private Handler handler;
     private String playerUsername;
@@ -57,6 +66,10 @@ public class GameMenuPane extends StackPane {
     private double usernameY = 120;
     private double usernameSize = 18;
     private Color usernameColor = Color.WHITE;
+    private double minigamesViewWidth;
+    private double minigamesViewHeight;
+    private static final double MINIGAMES_WIDTH = 640;
+    private static final double MINIGAMES_HEIGHT = 440;
 
     public GameMenuPane(String username) {
         this.playerUsername = username;
@@ -67,6 +80,8 @@ public class GameMenuPane extends StackPane {
         hoverMore = load("/pvz/images/menu/hover_more.png");
         hoverExit = load("/pvz/images/menu/hover_exit.png");
         playMenuImg = load("/pvz/images/menu/playmenu_bg.png");
+        minigamesImg = load("/pvz/images/Wall-nutBawling/MinigamesMenue.png");
+        walnutIconImg = load("/pvz/images/Wall-nutBawling/walnut_icon_250_rounded.png");
 
         if (baseImg == null || hoverPlay == null || hoverOptions == null
             || hoverMore == null || hoverExit == null) {
@@ -116,9 +131,66 @@ public class GameMenuPane extends StackPane {
             overlayLayer.getChildren().add(overlayImage);
         }
 
+        minigamesLayer = new Pane();
+        minigamesLayer.setPrefSize(800, 598);
+        minigamesLayer.setVisible(false);
+        minigamesLayer.setMouseTransparent(true);
+        minigamesLayer.setPickOnBounds(true);
+
+        minigamesView = new ImageView();
+        minigamesView.setPreserveRatio(false);
+        minigamesView.setFitWidth(MINIGAMES_WIDTH);
+        minigamesView.setFitHeight(MINIGAMES_HEIGHT);
+        minigamesView.setLayoutX((800 - MINIGAMES_WIDTH) / 2);
+        minigamesView.setLayoutY((598 - MINIGAMES_HEIGHT) / 2);
+        if (minigamesImg != null) {
+            minigamesView.setImage(minigamesImg);
+        }
+        minigamesLayer.getChildren().add(minigamesView);
+        minigamesViewWidth = MINIGAMES_WIDTH;
+        minigamesViewHeight = MINIGAMES_HEIGHT;
+
+        rBackToMenu = rect(0.04, 0.89, 0.11, 0.08);
+        rWalnutSlot = rect(0.01, 0.17, 0.21, 0.33);
+
+        walnutIconView = new ImageView();
+        if (walnutIconImg != null) {
+            walnutIconView.setImage(walnutIconImg);
+            walnutIconView.setPreserveRatio(true);
+            walnutIconView.setFitWidth(120);
+            walnutIconView.setFitHeight(120);
+            positionWalnutIcon();
+            walnutIconView.setOnMouseClicked(e -> {
+                if (handler != null) {
+                    handler.onWalnutMinigame();
+                }
+                hideMinigamesOverlay();
+            });
+            minigamesLayer.getChildren().add(walnutIconView);
+        } else {
+            walnutIconView.setVisible(false);
+        }
+
+        minigamesLayer.setOnMouseMoved(e -> {
+            if (!showingMinigamesOverlay) return;
+            if (containsMinigamesHotspot(rBackToMenu, e.getX(), e.getY()) ||
+                containsMinigamesHotspot(rWalnutSlot, e.getX(), e.getY())) {
+                setCursor(Cursor.HAND);
+            } else {
+                setCursor(Cursor.DEFAULT);
+            }
+        });
+        minigamesLayer.setOnMouseExited(e -> setCursor(Cursor.DEFAULT));
+        minigamesLayer.setOnMouseClicked(e -> {
+            if (!showingMinigamesOverlay) return;
+            if (containsMinigamesHotspot(rBackToMenu, e.getX(), e.getY())) {
+                hideMinigamesOverlay();
+            }
+        });
+
         configureLevelButtons();
 
-        getChildren().addAll(baseLayer, overlayLayer);
+        getChildren().addAll(baseLayer, overlayLayer, minigamesLayer);
 
         setPrefSize(800, 598);
         setMinSize(800, 598);
@@ -127,6 +199,10 @@ public class GameMenuPane extends StackPane {
         view.setOnMouseMoved(e -> {
             if (showingLevelOverlay) {
                 setCursor(Cursor.HAND);
+                return;
+            }
+            if (showingMinigamesOverlay) {
+                setCursor(Cursor.DEFAULT);
                 return;
             }
             int which = whichHotspot(e.getX(), e.getY());
@@ -141,7 +217,7 @@ public class GameMenuPane extends StackPane {
         });
 
         view.setOnMouseExited(e -> {
-            if (showingLevelOverlay) {
+            if (showingLevelOverlay || showingMinigamesOverlay) {
                 return;
             }
             view.setImage(baseImg);
@@ -157,6 +233,10 @@ public class GameMenuPane extends StackPane {
                 return;
             }
 
+            if (showingMinigamesOverlay) {
+                return;
+            }
+
             int which = whichHotspot(e.getX(), e.getY());
             switch (which) {
                 case 1 -> {
@@ -164,7 +244,10 @@ public class GameMenuPane extends StackPane {
                     handler.onPlay();
                 }
                 case 2 -> handler.onOptions();
-                case 3 -> handler.onMore();
+                case 3 -> {
+                    showMinigamesOverlay();
+                    handler.onMore();
+                }
                 case 4 -> handler.onExit();
                 case 5 -> handler.onLogout();
                 case 6 -> handler.onDeleteAccount();
@@ -227,6 +310,33 @@ public class GameMenuPane extends StackPane {
         return 0;
     }
 
+    private boolean containsMinigamesHotspot(Rectangle2D r, double x, double y) {
+        if (r == null) {
+            return false;
+        }
+        double vx = minigamesView.getLayoutX();
+        double vy = minigamesView.getLayoutY();
+        double rw = r.getWidth() * minigamesViewWidth;
+        double rh = r.getHeight() * minigamesViewHeight;
+        double rx = vx + r.getMinX() * minigamesViewWidth;
+        double ry = vy + r.getMinY() * minigamesViewHeight;
+        return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
+    }
+
+    private void positionWalnutIcon() {
+        if (walnutIconImg == null) {
+            return;
+        }
+        double slotX = minigamesView.getLayoutX() + rWalnutSlot.getMinX() * minigamesViewWidth;
+        double slotY = minigamesView.getLayoutY() + rWalnutSlot.getMinY() * minigamesViewHeight;
+        double slotW = rWalnutSlot.getWidth() * minigamesViewWidth;
+        double slotH = rWalnutSlot.getHeight() * minigamesViewHeight;
+        double x = slotX + (slotW - walnutIconView.getFitWidth()) / 2;
+        double y = slotY + (slotH - walnutIconView.getFitHeight()) / 2;
+        walnutIconView.setLayoutX(x);
+        walnutIconView.setLayoutY(y);
+    }
+
     private Image load(String path) {
         var in = getClass().getResourceAsStream(path);
         return in == null ? null : new Image(in);
@@ -238,6 +348,9 @@ public class GameMenuPane extends StackPane {
 
     private void showLevelOverlay() {
         showingLevelOverlay = true;
+        if (showingMinigamesOverlay) {
+            hideMinigamesOverlay();
+        }
         overlayLayer.setVisible(true);
         overlayLayer.setMouseTransparent(false);
         view.setMouseTransparent(true);
@@ -249,6 +362,34 @@ public class GameMenuPane extends StackPane {
         overlayLayer.setVisible(false);
         overlayLayer.setMouseTransparent(true);
         view.setMouseTransparent(false);
+        setCursor(Cursor.DEFAULT);
+    }
+
+    private void showMinigamesOverlay() {
+        if (showingMinigamesOverlay) {
+            return;
+        }
+        if (minigamesImg == null) {
+            System.err.println("Missing MinigamesMenue asset. Please add /pvz/images/menu/MinigamesMenue.png");
+            return;
+        }
+        if (showingLevelOverlay) {
+            hideOverlay();
+        }
+        showingMinigamesOverlay = true;
+        minigamesLayer.setVisible(true);
+        minigamesLayer.setMouseTransparent(false);
+        view.setMouseTransparent(true);
+        setCursor(Cursor.DEFAULT);
+    }
+
+    private void hideMinigamesOverlay() {
+        showingMinigamesOverlay = false;
+        minigamesLayer.setVisible(false);
+        minigamesLayer.setMouseTransparent(true);
+        if (!showingLevelOverlay) {
+            view.setMouseTransparent(false);
+        }
         setCursor(Cursor.DEFAULT);
     }
 
