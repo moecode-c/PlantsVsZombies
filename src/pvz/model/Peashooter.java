@@ -34,7 +34,7 @@ public class Peashooter extends Plant {
     public void run() {
         while (isAlive() && !Thread.currentThread().isInterrupted()) {
             try {
-                Thread.sleep(4000);
+                Thread.sleep(3500);
                 if (!isAlive() || Thread.currentThread().isInterrupted()) {
                     break;
                 }

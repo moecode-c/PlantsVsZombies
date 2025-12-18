@@ -14,6 +14,7 @@ import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
 public abstract class Zombie extends Characters implements Runnable {
+
     protected int attackPower;
     protected double speed;
     private double baseSpeed;
@@ -21,7 +22,8 @@ public abstract class Zombie extends Characters implements Runnable {
     private volatile boolean slowed = false;
     private PauseTransition slowReset;
 
-    public Zombie() {}
+    public Zombie() {
+    }
 
     public Zombie(int attackPower, double speed, int health) {
         this.attackPower = attackPower;
@@ -30,17 +32,38 @@ public abstract class Zombie extends Characters implements Runnable {
         this.health = health;
     }
 
-    public boolean isSlowed() { return slowed; }
-    public void setSlowed(boolean slowed) { this.slowed = slowed; }
-    public double getBaseSpeed() { return baseSpeed; }
+    public boolean isSlowed() {
+        return slowed;
+    }
+
+    public void setSlowed(boolean slowed) {
+        this.slowed = slowed;
+    }
+
+    public double getBaseSpeed() {
+        return baseSpeed;
+    }
+
     public void setBaseSpeed(double baseSpeed) {
         this.baseSpeed = baseSpeed;
         this.speed = baseSpeed;
     }
-    public double getAttackPower() { return attackPower; }
-    public void setAttackPower(int attackPower) { this.attackPower = attackPower; }
-    public double getSpeed() { return speed; }
-    public void setSpeed(double speed) { this.speed = speed; }
+
+    public double getAttackPower() {
+        return attackPower;
+    }
+
+    public void setAttackPower(int attackPower) {
+        this.attackPower = attackPower;
+    }
+
+    public double getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(double speed) {
+        this.speed = speed;
+    }
 
     public boolean isColliding(ImageView object) {
         double margin = 50;
@@ -67,7 +90,9 @@ public abstract class Zombie extends Characters implements Runnable {
     }
 
     public synchronized void move() {
-        if (!isAlive() || isAttacking) return;
+        if (!isAlive() || isAttacking) {
+            return;
+        }
         if (!Yard.gameOn) {
             return;
         }
@@ -140,7 +165,9 @@ public abstract class Zombie extends Characters implements Runnable {
     }
 
     private void attack(Plant targetPlant) {
-        if (isAttacking) return;
+        if (isAttacking) {
+            return;
+        }
         isAttacking = true;
         zombieEatingAudio();
         double originalSpeed = this.getSpeed();
