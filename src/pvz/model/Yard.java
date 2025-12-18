@@ -1360,7 +1360,8 @@ public class Yard extends Thread
 				// Add all locked cards to the root pane.
 				root.getChildren().addAll(cherryLockedCard.getCardImageView(), snowpeaLockedCard.getCardImageView(), torchWoodLockedCard.getCardImageView(), repeaterLockedCard.getCardImageView());
 				break;
-				            case 2:
+				
+				case 2:
                 PEASHOOTERCARD.addToYard(root, yardGrid, this);
                 SUNFLOWERCARD.addToYard(root, yardGrid, this);
                 POTATOCARD.addToYard(root, yardGrid, this);
