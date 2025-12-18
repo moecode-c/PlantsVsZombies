@@ -13,7 +13,7 @@ import pvz.util.AssetLoader;
 import javafx.scene.media.MediaPlayer;
 import javafx.util.Duration;
 
-public abstract class Zombie extends Characters implements Runnable {
+public abstract class Zombie extends Characters  {
     protected int attackPower;
     protected double speed;
     private double baseSpeed;
