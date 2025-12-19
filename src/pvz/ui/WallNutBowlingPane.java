@@ -4,19 +4,26 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import javafx.animation.AnimationTimer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
+import javafx.animation.ParallelTransition;
 import javafx.animation.PauseTransition;
+import javafx.animation.ScaleTransition;
+import javafx.animation.SequentialTransition;
 import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
+import javafx.application.Platform;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.effect.ColorAdjust;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Pane;
@@ -27,8 +34,10 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.util.Duration;
+import javafx.stage.Stage;
 
 import pvz.model.SoundtrackPlayer;
+import pvz.model.LoadingScreen;
 import pvz.model.Yard;
 import pvz.util.AssetLoader;
 
@@ -45,10 +54,10 @@ public class WallNutBowlingPane extends Pane {
     private static final double PLAY_AREA_HEIGHT = HEIGHT - PLAY_AREA_Y - 25;
     private static final double RED_LINE_X = 500;
 
-    private static final double CONVEYOR_WIDTH = 420;
-    private static final double CONVEYOR_HEIGHT = 96;
-    private static final double CONVEYOR_X = 230;
-    private static final double CONVEYOR_Y = 12;
+    private static final double CONVEYOR_WIDTH = 480;
+    private static final double CONVEYOR_HEIGHT = 74; // shorter to fit inside the black bar
+    private static final double CONVEYOR_X = 330;      // shifted right
+    private static final double CONVEYOR_Y = 4;        // align vertically
     private static final double CARD_WIDTH = 50;
     private static final double CARD_HEIGHT = 70;
     private static final double CARD_COST = 25;
@@ -59,6 +68,9 @@ public class WallNutBowlingPane extends Pane {
     private static final double CARD_SPEED = 140;
     private static final int MAX_CONVEYOR_CARDS = 5;
     private static final double TOTAL_TIME_SECONDS = 240;
+    private static final double HOUSE_BOUNDARY_X = PLAY_AREA_X - 40;
+    private static final double MOWER_START_X = PLAY_AREA_X - 90;
+    private static final double MOWER_SPEED = 520;
 
     private final Rectangle playAreaBounds;
     private final double laneHeight = PLAY_AREA_HEIGHT / Yard.ROWS;
@@ -74,10 +86,12 @@ public class WallNutBowlingPane extends Pane {
     private final Pane sunLayer = new Pane();
     private final Pane zombieLayer = new Pane();
     private final Pane introLayer = new Pane();
+    private final Pane conveyorMask = new Pane();
 
     private final List<ConveyorCard> conveyorCards = new ArrayList<>();
     private final List<WallnutBall> wallnutBalls = new ArrayList<>();
     private final List<MiniZombie> miniZombies = new ArrayList<>();
+    private final List<MiniLawnMower> lawnMowers = new ArrayList<>();
     private final Random random = new Random();
     private final List<ImageView> introZombies = new ArrayList<>();
 
@@ -89,11 +103,17 @@ public class WallNutBowlingPane extends Pane {
     private double sunSpawnTimer = 0;
     private double sunInterval = randomInterval();
     private boolean gameStarted = false;
+    private boolean gameOn = true;
+    private boolean hugeWaveShown = false;
+    private boolean hugeWaveActive = false;
+    private boolean lastMinuteBoost = false;
 
     private final Runnable onExitAction;
+    private final Stage stage;
     private MediaPlayer zombieSpawnMediaPlayer;
 
-    public WallNutBowlingPane(Runnable onExitAction) {
+    public WallNutBowlingPane(Stage stage, Runnable onExitAction) {
+        this.stage = stage;
         this.onExitAction = onExitAction;
         setPrefSize(WIDTH, HEIGHT);
         setupBackground();
@@ -126,6 +146,7 @@ public class WallNutBowlingPane extends Pane {
         SoundtrackPlayer.stopTrack();
         SoundtrackPlayer.playInGametrack1();
         playIntroSequence();
+        spawnLawnMowers();
     }
 
     private void startGameplay() {
@@ -138,29 +159,42 @@ public class WallNutBowlingPane extends Pane {
     }
 
     private void playIntroSequence() {
-        showIntroZombies();
+        showStaticZombies();
         playSoundEffect("/pvz/music/zombies arrive.mp3", 0.3);
+        zoomAndReveal();
+    }
 
+    private void spawnLawnMowers() {
+        lawnMowers.clear();
+        for (int r = 0; r < Yard.ROWS; r++) {
+            MiniLawnMower mower = new MiniLawnMower(r);
+            lawnMowers.add(mower);
+            ballLayer.getChildren().add(mower.view);
+        }
+    }
+
+    private void readySetPlant() {
         Rectangle overlay = new Rectangle(WIDTH, HEIGHT);
         overlay.setFill(Color.BLACK);
-        overlay.setOpacity(0.7);
-        introLayer.getChildren().add(overlay);
+        overlay.setOpacity(0.5);
 
         ImageView readyImage = createIntroImage("/pvz/images/others/Ready.png");
         ImageView setImage = createIntroImage("/pvz/images/others/Set.png");
         ImageView plantImage = createIntroImage("/pvz/images/others/Plant.png");
         setImage.setVisible(false);
         plantImage.setVisible(false);
-        introLayer.getChildren().addAll(readyImage, setImage, plantImage);
+        introLayer.getChildren().addAll(overlay, readyImage, setImage, plantImage);
 
         PauseTransition readyPause = new PauseTransition(Duration.seconds(1.5));
         readyPause.setOnFinished(event -> {
             readyImage.setVisible(false);
             setImage.setVisible(true);
+
             PauseTransition setPause = new PauseTransition(Duration.seconds(1.5));
             setPause.setOnFinished(setEvent -> {
                 setImage.setVisible(false);
                 plantImage.setVisible(true);
+
                 PauseTransition plantPause = new PauseTransition(Duration.seconds(1.5));
                 plantPause.setOnFinished(goEvent -> {
                     Timeline shakeTimeline = new Timeline();
@@ -181,7 +215,7 @@ public class WallNutBowlingPane extends Pane {
                         );
                         shakeTimeline.getKeyFrames().add(keyFrame);
                     }
-                    shakeTimeline.setOnFinished(shakeEvent -> cleanupIntro());
+                    shakeTimeline.setOnFinished(shakeEvent -> cleanupIntro(overlay, readyImage, setImage, plantImage));
                     shakeTimeline.play();
                 });
                 plantPause.play();
@@ -191,29 +225,193 @@ public class WallNutBowlingPane extends Pane {
         readyPause.play();
     }
 
-    private void cleanupIntro() {
-        introLayer.getChildren().clear();
-        hideIntroZombies();
+    private void gameOver() {
+        if (!gameOn) return;
+        gameOn = false;
+        dispose();
+
+        playSoundEffect("/pvz/music/level loss.mp3", 0.4);
+
+        Rectangle overlay = new Rectangle(WIDTH, HEIGHT);
+        overlay.setFill(Color.BLACK);
+        overlay.setOpacity(0.6);
+
+        ImageView gameOverImage = new ImageView(AssetLoader.loadImage("/pvz/images/others/ZombiesWin.png"));
+        gameOverImage.setPreserveRatio(true);
+        gameOverImage.setFitWidth(520);
+        gameOverImage.setFitHeight(407);
+        gameOverImage.setLayoutX((WIDTH - gameOverImage.getFitWidth()) / 2);
+        gameOverImage.setLayoutY((HEIGHT - gameOverImage.getFitHeight()) / 2);
+
+        getChildren().addAll(overlay, gameOverImage);
+
+        ScaleTransition zoom = new ScaleTransition(Duration.seconds(3), gameOverImage);
+        zoom.setFromX(0.5);
+        zoom.setFromY(0.5);
+        zoom.setToX(1.0);
+        zoom.setToY(1.0);
+        zoom.setInterpolator(Interpolator.EASE_BOTH);
+
+        TranslateTransition shake = new TranslateTransition(Duration.seconds(0.1), gameOverImage);
+        shake.setByX(10);
+        shake.setByY(10);
+        shake.setAutoReverse(true);
+        shake.setCycleCount(30);
+
+        ParallelTransition animation = new ParallelTransition(zoom, shake);
+        PauseTransition pause = new PauseTransition(Duration.seconds(4));
+        SequentialTransition seq = new SequentialTransition(animation, pause);
+        seq.setOnFinished(evt -> showLoadingThenExit());
+        seq.play();
+    }
+
+    private void gameWin() {
+        if (!gameOn) return;
+        gameOn = false;
+        dispose();
+
+        playSoundEffect("/pvz/music/level win.mp3", 0.5);
+
+        Rectangle overlay = new Rectangle(WIDTH, HEIGHT);
+        overlay.setFill(Color.BLACK);
+        overlay.setOpacity(0.6);
+
+        ImageView gameWinImage = new ImageView(AssetLoader.loadImage("/pvz/images/others/PlantsWin.png"));
+        gameWinImage.setPreserveRatio(true);
+        gameWinImage.setFitWidth(762);
+        gameWinImage.setFitHeight(276);
+        gameWinImage.setLayoutX((WIDTH - gameWinImage.getFitWidth()) / 2);
+        gameWinImage.setLayoutY((HEIGHT - gameWinImage.getFitHeight()) / 2);
+
+        getChildren().addAll(overlay, gameWinImage);
+
+        ScaleTransition zoom = new ScaleTransition(Duration.seconds(3), gameWinImage);
+        zoom.setFromX(0.5);
+        zoom.setFromY(0.5);
+        zoom.setToX(1.0);
+        zoom.setToY(1.0);
+        zoom.setInterpolator(Interpolator.EASE_BOTH);
+
+        TranslateTransition shake = new TranslateTransition(Duration.seconds(0.1), gameWinImage);
+        shake.setByX(10);
+        shake.setByY(10);
+        shake.setAutoReverse(true);
+        shake.setCycleCount(30);
+
+        ParallelTransition animation = new ParallelTransition(zoom, shake);
+        PauseTransition pause = new PauseTransition(Duration.seconds(4));
+        SequentialTransition seq = new SequentialTransition(animation, pause);
+        seq.setOnFinished(evt -> showLoadingThenExit());
+        seq.play();
+    }
+
+    private void showLoadingThenExit() {
+        if (stage != null) {
+            LoadingScreen.show(stage, () -> Platform.runLater(this::exit));
+        } else {
+            exit();
+        }
+    }
+
+    private void showHugeWave() {
+        hugeWaveActive = true;
+        playSoundEffect("/pvz/music/zombie wave.mp3", 0.6);
+        ImageView waveImage = new ImageView(AssetLoader.loadImage("/pvz/images/others/HugeWave.gif"));
+        waveImage.setFitWidth(500);
+        waveImage.setFitHeight(120);
+        waveImage.setLayoutX(WIDTH / 2 - waveImage.getFitWidth() / 2);
+        waveImage.setLayoutY(HEIGHT / 2 - waveImage.getFitHeight() / 2);
+        introLayer.getChildren().add(waveImage);
+        PauseTransition wavePause = new PauseTransition(Duration.seconds(2.5));
+        wavePause.setOnFinished(event -> {
+            introLayer.getChildren().remove(waveImage);
+            hugeWaveActive = false;
+            lastMinuteBoost = true;
+        });
+        wavePause.play();
+    }
+
+    private void zoomAndReveal() {
+        PauseTransition initialFreeze = new PauseTransition(Duration.seconds(2));
+
+        Timeline zoomToRight = new Timeline(
+                new KeyFrame(Duration.seconds(0),
+                        new KeyValue(scaleXProperty(), 1),
+                        new KeyValue(scaleYProperty(), 1),
+                        new KeyValue(layoutXProperty(), 0)
+                ),
+                new KeyFrame(Duration.seconds(1),
+                        new KeyValue(scaleXProperty(), 1.5),
+                        new KeyValue(scaleYProperty(), 1.5),
+                        new KeyValue(layoutXProperty(), -WIDTH * 0.25)
+                )
+        );
+
+        Timeline panLeft = new Timeline(
+                new KeyFrame(Duration.seconds(0),
+                        new KeyValue(layoutXProperty(), -WIDTH * 0.25)
+                ),
+                new KeyFrame(Duration.seconds(2),
+                        new KeyValue(layoutXProperty(), WIDTH * 0.25)
+                )
+        );
+
+        PauseTransition hold = new PauseTransition(Duration.seconds(4.5));
+        panLeft.setOnFinished(evt -> hideStaticZombies());
+
+        Timeline zoomOut = new Timeline(
+                new KeyFrame(Duration.seconds(0),
+                        new KeyValue(scaleXProperty(), 1.5),
+                        new KeyValue(scaleYProperty(), 1.5),
+                        new KeyValue(layoutXProperty(), WIDTH * 0.25)
+                ),
+                new KeyFrame(Duration.seconds(2),
+                        new KeyValue(scaleXProperty(), 1),
+                        new KeyValue(scaleYProperty(), 1),
+                        new KeyValue(layoutXProperty(), 0)
+                )
+        );
+
+        SequentialTransition sequence = new SequentialTransition(initialFreeze, zoomToRight, hold, panLeft, zoomOut);
+        sequence.setOnFinished(evt -> readySetPlant());
+        sequence.play();
+    }
+
+    private void cleanupIntro(Rectangle overlay, ImageView readyImage, ImageView setImage, ImageView plantImage) {
+        introLayer.getChildren().removeAll(overlay, readyImage, setImage, plantImage);
+        hideStaticZombies();
         startGameplay();
     }
 
-    private void showIntroZombies() {
-        hideIntroZombies();
-        for (int i = 0; i < 6; i++) {
+    private void showStaticZombies() {
+        hideStaticZombies();
+        for (int i = 0; i < 8; i++) {
             ImageView zombie = new ImageView(AssetLoader.loadImage("/pvz/images/yardStaticZombies/" + i + ".gif"));
-            zombie.setFitWidth(120);
-            zombie.setFitHeight(150);
+            zombie.setFitWidth(127);
+            zombie.setFitHeight(164);
             zombie.setPreserveRatio(true);
-            double offsetX = PLAY_AREA_X + PLAY_AREA_WIDTH - 250 + (i % 2) * 80;
-            double offsetY = PLAY_AREA_Y + 40 + i * 18;
-            zombie.setLayoutX(offsetX);
-            zombie.setLayoutY(offsetY);
+            if (i % 2 == 0) {
+                zombie.setLayoutX(1100);
+            } else {
+                zombie.setLayoutX(1210);
+            }
+            int yOffset = switch (i) {
+                case 0 -> 130;
+                case 1 -> 170;
+                case 2 -> 210;
+                case 3 -> 250;
+                case 4 -> 290;
+                case 5 -> 330;
+                case 6 -> 370;
+                default -> 410;
+            };
+            zombie.setLayoutY(yOffset);
             introZombies.add(zombie);
             introLayer.getChildren().add(zombie);
         }
     }
 
-    private void hideIntroZombies() {
+    private void hideStaticZombies() {
         for (ImageView zombie : introZombies) {
             introLayer.getChildren().remove(zombie);
         }
@@ -247,20 +445,24 @@ public class WallNutBowlingPane extends Pane {
         beltA.setFitHeight(CONVEYOR_HEIGHT);
         beltB.setFitWidth(CONVEYOR_WIDTH);
         beltB.setFitHeight(CONVEYOR_HEIGHT);
-        beltA.setLayoutX(CONVEYOR_X);
-        beltA.setLayoutY(CONVEYOR_Y);
-        beltB.setLayoutX(CONVEYOR_X + CONVEYOR_WIDTH);
-        beltB.setLayoutY(CONVEYOR_Y);
-        beltA.setClip(new Rectangle(CONVEYOR_WIDTH, CONVEYOR_HEIGHT));
-        beltB.setClip(new Rectangle(CONVEYOR_WIDTH, CONVEYOR_HEIGHT));
-        conveyorLayer.getChildren().addAll(beltA, beltB);
+        beltA.setLayoutX(0);
+        beltA.setLayoutY(0);
+        beltB.setLayoutX(CONVEYOR_WIDTH);
+        beltB.setLayoutY(0);
+
+        conveyorMask.setLayoutX(CONVEYOR_X);
+        conveyorMask.setLayoutY(CONVEYOR_Y);
+        conveyorMask.setPrefSize(CONVEYOR_WIDTH, CONVEYOR_HEIGHT);
+        conveyorMask.setClip(new Rectangle(CONVEYOR_WIDTH, CONVEYOR_HEIGHT));
+        conveyorMask.getChildren().setAll(beltA, beltB);
+        conveyorLayer.getChildren().add(conveyorMask);
 
         Timeline loop = new Timeline(
                 new KeyFrame(Duration.ZERO, evt -> {
                     beltA.setTranslateX(0);
                     beltB.setTranslateX(0);
                 }),
-                new KeyFrame(Duration.seconds(2.0), evt -> {
+                new KeyFrame(Duration.seconds(2.8), evt -> {
                     beltA.setTranslateX(-CONVEYOR_WIDTH);
                     beltB.setTranslateX(-CONVEYOR_WIDTH);
                 })
@@ -303,6 +505,7 @@ public class WallNutBowlingPane extends Pane {
                 updateConveyorCards(delta);
                 updateBalls(delta);
                 updateZombies(delta);
+                updateLawnMowers(delta);
                 maybeSpawnZombie(delta);
                 maybeSpawnSun(delta);
                 tickTimer(delta);
@@ -337,17 +540,34 @@ public class WallNutBowlingPane extends Pane {
         }
     }
 
+    private void updateLawnMowers(double delta) {
+        for (MiniLawnMower mower : lawnMowers) {
+            mower.update(delta);
+        }
+    }
+
     private void maybeSpawnZombie(double delta) {
+        if (!gameOn) return;
+        if (hugeWaveActive) return;
         zombieSpawnTimer += delta;
         if (zombieSpawnTimer >= zombieSpawnInterval) {
             spawnMiniZombie();
+            if (timeRemaining < 90 && random.nextDouble() < 0.45) {
+                spawnMiniZombie();
+            } else if (random.nextDouble() < 0.25) {
+                spawnMiniZombie();
+            }
+            if (lastMinuteBoost && random.nextDouble() < 0.6) {
+                spawnMiniZombie();
+            }
             playRandomZombieSpawnSound();
             zombieSpawnTimer = 0;
-            zombieSpawnInterval = Math.max(MIN_ZOMBIE_INTERVAL, zombieSpawnInterval - 0.15);
+            zombieSpawnInterval = Math.max(MIN_ZOMBIE_INTERVAL, zombieSpawnInterval - (lastMinuteBoost ? 0.2 : 0.12));
         }
     }
 
     private void maybeSpawnSun(double delta) {
+        if (!gameOn) return;
         sunSpawnTimer += delta;
         if (sunSpawnTimer >= sunInterval) {
             dropSunFromSky();
@@ -357,9 +577,14 @@ public class WallNutBowlingPane extends Pane {
     }
 
     private void tickTimer(double delta) {
+        if (!gameOn) return;
         timeRemaining -= delta;
+        if (!hugeWaveShown && timeRemaining <= 60) {
+            hugeWaveShown = true;
+            showHugeWave();
+        }
         if (timeRemaining <= 0) {
-            exit();
+            gameWin();
             return;
         }
         timerLabel.setText(formatTime((int) Math.ceil(timeRemaining)));
@@ -455,6 +680,33 @@ public class WallNutBowlingPane extends Pane {
         if (cardSpawner != null) cardSpawner.stop();
         if (conveyorLoop != null) conveyorLoop.stop();
         if (gameLoop != null) gameLoop.stop();
+        if (zombieSpawnMediaPlayer != null) {
+            zombieSpawnMediaPlayer.stop();
+            zombieSpawnMediaPlayer = null;
+        }
+        SoundtrackPlayer.stopTrack();
+        gameOn = false;
+    }
+
+    private String resolveMediaPath(String resourcePath) {
+        try {
+            var url = getClass().getResource(resourcePath);
+            if (url != null) {
+                return url.toExternalForm();
+            }
+            Path fallback = Paths.get("src" + resourcePath);
+            if (Files.exists(fallback)) {
+                return fallback.toUri().toString();
+            }
+            Path binFallback = Paths.get("bin" + resourcePath);
+            if (Files.exists(binFallback)) {
+                return binFallback.toUri().toString();
+            }
+        } catch (Exception e) {
+            System.out.println("Failed to resolve media path for " + resourcePath + " : " + e.getMessage());
+        }
+        System.out.println("Missing media: " + resourcePath);
+        return null;
     }
 
     private void reassignCardSlots() {
@@ -488,14 +740,24 @@ public class WallNutBowlingPane extends Pane {
 
     private void playSoundEffect(String resourcePath, double volume) {
         try {
-            String fullPath = getClass().getResource(resourcePath).toExternalForm();
+            String fullPath = resolveMediaPath(resourcePath);
+            if (fullPath == null) {
+                System.out.println("Sound missing: " + resourcePath);
+                return;
+            }
             Media media = new Media(fullPath);
             MediaPlayer player = new MediaPlayer(media);
             player.setVolume(volume);
+            player.setOnError(() -> System.out.println("Sound error for " + resourcePath + ": " + player.getError()));
             player.play();
         } catch (Exception e) {
-            System.out.println("Error playing sound effect: " + e.getMessage());
+            System.out.println("Error playing sound effect: " + e.getMessage() + " for " + resourcePath);
         }
+    }
+
+    private void playImpactSound(boolean secondary) {
+        String clip = secondary ? "/pvz/music/bowlingimpact2.mp3" : "/pvz/music/bowlingimpact.mp3";
+        playSoundEffect(clip, 0.8);
     }
 
     private class ConveyorCard {
@@ -587,7 +849,10 @@ public class WallNutBowlingPane extends Pane {
     private class WallnutBall {
         final ImageView view;
         final int row;
-        final double vx = 240;
+        private double vx = 260;
+        private double vy = 0;
+        private boolean deflected = false;
+        private final List<MiniZombie> hitZombies = new ArrayList<>();
 
         WallnutBall(double x, int row) {
             this.row = row;
@@ -603,13 +868,35 @@ public class WallNutBowlingPane extends Pane {
 
         boolean update(double delta) {
             view.setLayoutX(view.getLayoutX() + vx * delta);
-            if (view.getLayoutX() > PLAY_AREA_X + PLAY_AREA_WIDTH) {
+            view.setLayoutY(view.getLayoutY() + vy * delta);
+
+            // clamp to play area vertically
+            double minY = PLAY_AREA_Y;
+            double maxY = PLAY_AREA_Y + PLAY_AREA_HEIGHT - view.getFitHeight();
+            if (view.getLayoutY() < minY) view.setLayoutY(minY);
+            if (view.getLayoutY() > maxY) view.setLayoutY(maxY);
+
+            if (view.getLayoutX() > PLAY_AREA_X + PLAY_AREA_WIDTH + 120) {
                 return false;
             }
+
             for (MiniZombie zombie : miniZombies) {
-                if (zombie.row == row && zombie.isAlive() && view.getBoundsInParent().intersects(zombie.view.getBoundsInParent())) {
+                if (!zombie.isAlive() || hitZombies.contains(zombie)) {
+                    continue;
+                }
+
+                if (view.getBoundsInParent().intersects(zombie.view.getBoundsInParent())) {
+                    hitZombies.add(zombie);
                     zombie.hit();
-                    return false;
+
+                    if (!deflected) {
+                        deflected = true;
+                        double angle = random.nextBoolean() ? 1 : -1;
+                        vy = angle * 140;
+                        playImpactSound(false);
+                    } else {
+                        playImpactSound(true);
+                    }
                 }
             }
             return true;
@@ -620,10 +907,12 @@ public class WallNutBowlingPane extends Pane {
         final ImageView view;
         final int row;
         final double speed;
+        private final ZombieType type;
         private int remainingHits;
         private boolean alive = true;
 
         MiniZombie(ZombieType type, int row, double startX) {
+            this.type = type;
             this.row = row;
             this.remainingHits = type.hits;
             Image sprite = AssetLoader.loadImage(type.imagePath);
@@ -638,9 +927,29 @@ public class WallNutBowlingPane extends Pane {
         }
 
         boolean update(double delta) {
-            if (!alive) return false;
+            if (!alive || !gameOn) return false;
+
             view.setLayoutX(view.getLayoutX() - speed * delta);
-            if (view.getLayoutX() + view.getFitWidth() < PLAY_AREA_X) {
+
+            // Check lawn mower collision
+            for (MiniLawnMower mower : lawnMowers) {
+                if (mower.row == row && mower.isAlive() && mower.intersects(view)) {
+                    mower.activate();
+                    takeLawnMowerHit();
+                    return false;
+                }
+            }
+
+            // Check house breach if mower already spent
+            if (view.getLayoutX() <= HOUSE_BOUNDARY_X) {
+                boolean mowerSpent = lawnMowers.stream().anyMatch(m -> m.row == row && !m.isAlive());
+                if (mowerSpent) {
+                    gameOver();
+                    return false;
+                }
+            }
+
+            if (view.getLayoutX() + view.getFitWidth() < PLAY_AREA_X - 120) {
                 alive = false;
                 removeView();
                 return false;
@@ -651,10 +960,43 @@ public class WallNutBowlingPane extends Pane {
         void hit() {
             if (!alive) return;
             remainingHits--;
+            flashHit();
             if (remainingHits <= 0) {
                 alive = false;
-                removeView();
+                playDeathAnimation();
             }
+        }
+
+        private void flashHit() {
+            ColorAdjust adjust = new ColorAdjust();
+            adjust.setBrightness(0.6);
+            view.setEffect(adjust);
+            Timeline timeline = new Timeline(
+                    new KeyFrame(Duration.millis(200), new KeyValue(adjust.brightnessProperty(), 0))
+            );
+            timeline.setCycleCount(1);
+            timeline.play();
+        }
+
+        private void playDeathAnimation() {
+            String deathPath = type == ZombieType.FOOTBALL
+                ? "/pvz/images/zombies/FootballZombieDie.gif"
+                : "/pvz/images/zombies/ZombieDie.gif";
+            view.setImage(AssetLoader.loadImage(deathPath));
+            view.setFitWidth(type == ZombieType.FOOTBALL ? 134 : 134);
+            view.setFitHeight(type == ZombieType.FOOTBALL ? 150 : 155);
+            view.setPreserveRatio(true);
+
+            double duration = type == ZombieType.FOOTBALL ? 0.8 : 1.6;
+            PauseTransition pause = new PauseTransition(Duration.seconds(duration));
+            pause.setOnFinished(evt -> zombieLayer.getChildren().remove(view));
+            pause.play();
+        }
+
+        private void takeLawnMowerHit() {
+            if (!alive) return;
+            alive = false;
+            playDeathAnimation();
         }
 
         private void removeView() {
@@ -666,11 +1008,59 @@ public class WallNutBowlingPane extends Pane {
         }
     }
 
+    private class MiniLawnMower {
+        final int row;
+        final ImageView view;
+        private boolean active = false;
+        private boolean alive = true;
+
+        MiniLawnMower(int row) {
+            this.row = row;
+            this.view = new ImageView(AssetLoader.loadImage("/pvz/images/yard-related/lawnmower.png"));
+            view.setFitWidth(90);
+            view.setFitHeight(70);
+            view.setPreserveRatio(true);
+            double laneCenter = PLAY_AREA_Y + row * laneHeight + (laneHeight - view.getFitHeight()) / 2.0;
+            view.setLayoutX(MOWER_START_X);
+            view.setLayoutY(laneCenter);
+        }
+
+        boolean isAlive() {
+            return alive;
+        }
+
+        boolean intersects(ImageView zombieView) {
+            return view.getBoundsInParent().intersects(zombieView.getBoundsInParent());
+        }
+
+        void activate() {
+            if (!alive || active) return;
+            active = true;
+            playSoundEffect("/pvz/music/card selected.mp3", 0.6);
+        }
+
+        void update(double delta) {
+            if (!alive || !active || !gameOn) return;
+            view.setLayoutX(view.getLayoutX() + MOWER_SPEED * delta);
+
+            // squash zombies in this lane
+            for (MiniZombie zombie : new ArrayList<>(miniZombies)) {
+                if (zombie.row == row && zombie.isAlive() && intersects(zombie.view)) {
+                    zombie.takeLawnMowerHit();
+                }
+            }
+
+            if (view.getLayoutX() > PLAY_AREA_X + PLAY_AREA_WIDTH + 200) {
+                alive = false;
+            }
+        }
+    }
+
     private enum ZombieType {
-        DEFAULT("/pvz/images/zombies/Zombie.gif", 1, 260),
-        CONE("/pvz/images/zombies/ConeZombie.gif", 2, 240),
-        BUCKET("/pvz/images/zombies/BucketheadZombie.gif", 2, 220),
-        FOOTBALL("/pvz/images/zombies/FootballZombie.gif", 3, 320);
+        DEFAULT("/pvz/images/zombies/Zombie.gif", 1, 120),
+        CONE("/pvz/images/zombies/ConeZombie.gif", 2, 110),
+        BUCKET("/pvz/images/zombies/BucketheadZombie.gif", 2, 105),
+        FOOTBALL("/pvz/images/zombies/FootballZombie.gif", 3, 160);
 
         final String imagePath;
         final int hits;
