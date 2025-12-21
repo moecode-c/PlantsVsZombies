@@ -4,16 +4,20 @@ import java.util.Objects;
 
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Cursor;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.control.Button;
+import javafx.scene.control.Slider;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+
+import pvz.model.AudioSettings;
 
 public class GameMenuPane extends StackPane {
 
@@ -36,6 +40,7 @@ public class GameMenuPane extends StackPane {
     private final Image playMenuImg;
     private final Image minigamesImg;
     private final Image walnutIconImg;
+    private final Image optionsBgImg;
 
     private final ImageView view;
     private final Pane baseLayer;
@@ -45,6 +50,11 @@ public class GameMenuPane extends StackPane {
     private final Pane minigamesLayer;
     private final ImageView minigamesView;
     private final ImageView walnutIconView;
+    private final ImageView optionsBgView;
+    private final Pane optionsLayer;
+    private final CheckBox musicToggle;
+    private final Slider musicSlider;
+    private final Label musicValueLabel;
 
     private Rectangle2D rPlay;
     private Rectangle2D rOptions;
@@ -58,6 +68,7 @@ public class GameMenuPane extends StackPane {
 
     private boolean showingLevelOverlay;
     private boolean showingMinigamesOverlay;
+    private boolean showingOptionsOverlay;
 
     private Handler handler;
     private String playerUsername;
@@ -82,6 +93,7 @@ public class GameMenuPane extends StackPane {
         playMenuImg = load("/pvz/images/menu/playmenu_bg.png");
         minigamesImg = load("/pvz/images/Wall-nutBawling/MinigamesMenue.png");
         walnutIconImg = load("/pvz/images/Wall-nutBawling/walnut_icon_250_rounded.png");
+        optionsBgImg = load("/pvz/images/menu/options_bg.png");
 
         if (baseImg == null || hoverPlay == null || hoverOptions == null
             || hoverMore == null || hoverExit == null) {
@@ -188,9 +200,94 @@ public class GameMenuPane extends StackPane {
             }
         });
 
+        optionsLayer = new Pane();
+        optionsLayer.setPrefSize(800, 598);
+        optionsLayer.setVisible(false);
+        optionsLayer.setMouseTransparent(true);
+        optionsLayer.setPickOnBounds(true);
+
+        optionsBgView = optionsBgImg == null ? null : new ImageView(optionsBgImg);
+        if (optionsBgView != null) {
+            optionsBgView.setFitWidth(800);
+            optionsBgView.setFitHeight(598);
+            optionsBgView.setPreserveRatio(false);
+            optionsBgView.setSmooth(true);
+            optionsLayer.getChildren().add(optionsBgView);
+        } else {
+            Rectangle fallback = new Rectangle(800, 598);
+            fallback.setFill(new Color(0, 0, 0, 0.75));
+            optionsLayer.getChildren().add(fallback);
+            System.err.println("Missing options background image at /pvz/images/menu/options_bg.png; using fallback overlay.");
+        }
+
+        Pane card = new Pane();
+        card.setPrefSize(520, 320);
+        card.setLayoutX((800 - 520) / 2.0);
+        card.setLayoutY((598 - 320) / 2.0 - 10);
+        card.setStyle("-fx-background-color: rgba(0,0,0,0.35); -fx-background-radius: 14; " +
+                      "-fx-border-color: rgba(255,255,255,0.15); -fx-border-radius: 14; -fx-border-width: 1;");
+
+        Label optionsTitle = new Label("Audio");
+        optionsTitle.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+        optionsTitle.setTextFill(Color.WHITE);
+        optionsTitle.setLayoutX(24);
+        optionsTitle.setLayoutY(18);
+        card.getChildren().add(optionsTitle);
+
+        musicToggle = new CheckBox("Enable music");
+        musicToggle.setFont(Font.font("Arial", FontWeight.SEMI_BOLD, 16));
+        musicToggle.setTextFill(Color.WHITE);
+        musicToggle.setLayoutX(24);
+        musicToggle.setLayoutY(70);
+
+        Label volumeLabel = new Label("Music volume");
+        volumeLabel.setFont(Font.font("Arial", FontWeight.SEMI_BOLD, 16));
+        volumeLabel.setTextFill(Color.WHITE);
+        volumeLabel.setLayoutX(24);
+        volumeLabel.setLayoutY(120);
+
+        musicSlider = new Slider(0, 1, AudioSettings.getMusicVolume());
+        musicSlider.setShowTickMarks(true);
+        musicSlider.setShowTickLabels(true);
+        musicSlider.setBlockIncrement(0.05);
+        musicSlider.setMajorTickUnit(0.25);
+        musicSlider.setMinorTickCount(4);
+        musicSlider.setLayoutX(24);
+        musicSlider.setLayoutY(150);
+        musicSlider.setPrefWidth(260);
+        musicSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            AudioSettings.setMusicVolume(newVal.doubleValue());
+            updateMusicValueLabel();
+        });
+
+        musicToggle.setOnAction(e -> {
+            AudioSettings.setMusicEnabled(musicToggle.isSelected());
+            musicSlider.setDisable(!musicToggle.isSelected());
+            updateMusicValueLabel();
+        });
+
+        musicValueLabel = new Label();
+        musicValueLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
+        musicValueLabel.setTextFill(Color.LIGHTGRAY);
+        musicValueLabel.setLayoutX(300);
+        musicValueLabel.setLayoutY(147);
+
+
+        card.getChildren().addAll(musicToggle, volumeLabel, musicSlider, musicValueLabel);
+        optionsLayer.getChildren().addAll(card);
+
+        optionsLayer.setOnMouseClicked(e -> {
+            double localX = e.getX() - card.getLayoutX();
+            double localY = e.getY() - card.getLayoutY();
+            if (localX < 0 || localY < 0 || localX > card.getPrefWidth() || localY > card.getPrefHeight()) {
+                hideOptionsOverlay();
+            }
+        });
+        card.setOnMouseClicked(e -> e.consume());
+
         configureLevelButtons();
 
-        getChildren().addAll(baseLayer, overlayLayer, minigamesLayer);
+        getChildren().addAll(baseLayer, overlayLayer, minigamesLayer, optionsLayer);
 
         setPrefSize(800, 598);
         setMinSize(800, 598);
@@ -202,6 +299,10 @@ public class GameMenuPane extends StackPane {
                 return;
             }
             if (showingMinigamesOverlay) {
+                setCursor(Cursor.DEFAULT);
+                return;
+            }
+            if (showingOptionsOverlay) {
                 setCursor(Cursor.DEFAULT);
                 return;
             }
@@ -217,7 +318,7 @@ public class GameMenuPane extends StackPane {
         });
 
         view.setOnMouseExited(e -> {
-            if (showingLevelOverlay || showingMinigamesOverlay) {
+            if (showingLevelOverlay || showingMinigamesOverlay || showingOptionsOverlay) {
                 return;
             }
             view.setImage(baseImg);
@@ -237,13 +338,20 @@ public class GameMenuPane extends StackPane {
                 return;
             }
 
+            if (showingOptionsOverlay) {
+                return;
+            }
+
             int which = whichHotspot(e.getX(), e.getY());
             switch (which) {
                 case 1 -> {
                     showLevelOverlay();
                     handler.onPlay();
                 }
-                case 2 -> handler.onOptions();
+                case 2 -> {
+                    showOptionsOverlay();
+                    handler.onOptions();
+                }
                 case 3 -> {
                     showMinigamesOverlay();
                     handler.onMore();
@@ -387,21 +495,65 @@ public class GameMenuPane extends StackPane {
         showingMinigamesOverlay = false;
         minigamesLayer.setVisible(false);
         minigamesLayer.setMouseTransparent(true);
-        if (!showingLevelOverlay) {
+        if (!showingLevelOverlay && !showingOptionsOverlay) {
             view.setMouseTransparent(false);
         }
         setCursor(Cursor.DEFAULT);
+    }
+
+    private void showOptionsOverlay() {
+        if (showingOptionsOverlay) {
+            return;
+        }
+        if (showingLevelOverlay) {
+            hideOverlay();
+        }
+        if (showingMinigamesOverlay) {
+            hideMinigamesOverlay();
+        }
+        refreshOptionsUI();
+        showingOptionsOverlay = true;
+        optionsLayer.setVisible(true);
+        optionsLayer.setMouseTransparent(false);
+        view.setMouseTransparent(true);
+        setCursor(Cursor.DEFAULT);
+    }
+
+    private void hideOptionsOverlay() {
+        showingOptionsOverlay = false;
+        optionsLayer.setVisible(false);
+        optionsLayer.setMouseTransparent(true);
+        if (!showingLevelOverlay && !showingMinigamesOverlay) {
+            view.setMouseTransparent(false);
+        }
+        setCursor(Cursor.DEFAULT);
+    }
+
+    private void refreshOptionsUI() {
+        musicToggle.setSelected(AudioSettings.isMusicEnabled());
+        musicSlider.setValue(AudioSettings.getMusicVolume());
+        musicSlider.setDisable(!AudioSettings.isMusicEnabled());
+        updateMusicValueLabel();
+    }
+
+    private void updateMusicValueLabel() {
+        if (!AudioSettings.isMusicEnabled()) {
+            musicValueLabel.setText("Muted");
+            return;
+        }
+        double pct = Math.round(musicSlider.getValue() * 100);
+        musicValueLabel.setText((int) pct + "%");
     }
 
     private void configureLevelButtons() {
         double overlayX = overlayImage != null ? overlayImage.getLayoutX() : 120;
         double overlayY = overlayImage != null ? overlayImage.getLayoutY() : 100;
 
-        double buttonWidth = 95;
-        double buttonHeight = 130;
-        double spacing = 18;
-        double firstX = overlayX + 85;
-        double rowY = overlayY + 55;
+        double buttonWidth = 90;
+        double buttonHeight = 90;
+        double spacing = 10;
+        double firstX = overlayX + 60;
+        double rowY = overlayY + 40;
 
         // Show levels 1-5 (level 4 is infinite mode)
         for (int i = 0; i < 5; i++) {
@@ -410,7 +562,7 @@ public class GameMenuPane extends StackPane {
             addLevelButton(bounds, i + 1);
         }
 
-        double[] backBounds = {overlayX + 250, overlayY + 255, 140, 70};
+        double[] backBounds = {overlayX + 250, overlayY + 325, 140, 70};
         addLevelButton(backBounds, 0);
     }
 
@@ -421,10 +573,11 @@ public class GameMenuPane extends StackPane {
         button.setPrefWidth(bounds[2]);
         button.setPrefHeight(bounds[3]);
         button.setFont(Font.font("Arial", FontWeight.BOLD, levelNumber == 0 ? 18 : 16));
-        button.setTextFill(Color.WHITE);
-        button.setOpacity(0.9);
+        button.setTextFill(Color.TRANSPARENT);
+        button.setOpacity(0.0); // keep hitbox but hide visuals
         button.setFocusTraversable(false);
-        button.setStyle(String.format("-fx-background-color: %s; -fx-border-color: white; -fx-border-width: 2; -fx-background-radius: 8;", debugColorForLevel(levelNumber)));
+        button.setStyle("-fx-background-color: transparent; -fx-border-color: transparent;");
+        button.setCursor(Cursor.HAND);
         button.setOnAction(e -> {
             if (levelNumber == 0) {
                 hideOverlay();

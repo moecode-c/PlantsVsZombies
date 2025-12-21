@@ -646,7 +646,7 @@ public class Yard extends Thread
 				}
 
 				@Override public void onOptions() {
-					showMenuInfo("Options feature coming soon!");
+					// Options overlay is handled by GameMenuPane.
 				}
 
 				@Override public void onMore() {

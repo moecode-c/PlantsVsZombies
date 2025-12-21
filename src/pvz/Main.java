@@ -6,12 +6,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.scene.media.Media;
 import javafx.scene.media.MediaPlayer;
 import pvz.model.LoadingScreen;
+import pvz.model.AudioSettings;
 import pvz.model.PlayerStore;
 import pvz.model.Yard;
 import pvz.ui.AuthFormPane;
@@ -38,6 +40,14 @@ public class Main extends Application {
     public void start(Stage stage) {
         playMenuMusic();
         store.load();
+
+        try {
+            var in = getClass().getResourceAsStream("/pvz/images/GameIcon/pfp.jpg");
+            if (in != null) {
+                stage.getIcons().add(new Image(in));
+            }
+        } catch (Exception ignored) {
+        }
 
         rootPane = new StackPane();
         ImageMenuPane menu = new ImageMenuPane();
@@ -116,7 +126,7 @@ public class Main extends Application {
                 // Play image is now shown directly in GameMenuPane
             }
             @Override public void onOptions() {
-                show(Alert.AlertType.INFORMATION, "Options feature coming soon!");
+                // Options overlay is handled directly by GameMenuPane.
             }
             @Override public void onMore() {
                 // The minigames overlay already appears when the More hotspot is clicked.
@@ -216,7 +226,11 @@ public class Main extends Application {
                 menuMusicPlayer = null;
             }
         }
-        if (menuMusicPlayer != null) menuMusicPlayer.play();
+        if (menuMusicPlayer != null) {
+            AudioSettings.register(menuMusicPlayer);
+            AudioSettings.apply(menuMusicPlayer);
+            menuMusicPlayer.play();
+        }
     }
 
     private void stopMenuMusic() {

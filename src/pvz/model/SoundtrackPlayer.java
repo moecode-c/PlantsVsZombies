@@ -19,7 +19,8 @@ public class SoundtrackPlayer
 
 			// Set the background music to loop
 			sound_track_player.setCycleCount(MediaPlayer.INDEFINITE);
-			sound_track_player.setVolume(0.2);  // Adjust volume if necessary
+			AudioSettings.register(sound_track_player);
+			AudioSettings.apply(sound_track_player);
 
 			// Start playing the soundtrack
 			sound_track_player.play();
@@ -41,7 +42,8 @@ public class SoundtrackPlayer
 
 			// Set the background music to loop
 			sound_track_player.setCycleCount(MediaPlayer.INDEFINITE);
-			sound_track_player.setVolume(0.2);  // Adjust volume if necessary
+			AudioSettings.register(sound_track_player);
+			AudioSettings.apply(sound_track_player);
 
 			// Start playing the soundtrack
 			sound_track_player.play();
@@ -63,7 +65,8 @@ public class SoundtrackPlayer
 
 			// Set the background music to loop
 			sound_track_player.setCycleCount(MediaPlayer.INDEFINITE);
-			sound_track_player.setVolume(0.2);  // Adjust volume if necessary
+			AudioSettings.register(sound_track_player);
+			AudioSettings.apply(sound_track_player);
 
 			// Start playing the soundtrack
 			sound_track_player.play();
@@ -85,7 +88,8 @@ public class SoundtrackPlayer
 
 			// Set the background music to loop
 			sound_track_player.setCycleCount(MediaPlayer.INDEFINITE);
-			sound_track_player.setVolume(0.2);  // Adjust volume if necessary
+			AudioSettings.register(sound_track_player);
+			AudioSettings.apply(sound_track_player);
 
 			// Start playing the soundtrack
 			sound_track_player.play();
@@ -103,6 +107,7 @@ public class SoundtrackPlayer
 	public static void stopTrack() {
 		try {
 			if (sound_track_player != null) {
+				AudioSettings.unregister(sound_track_player);
 				sound_track_player.stop();  // Stop the current track
 				sound_track_player.dispose();  // Release resources
 				sound_track_player = null;  // Clear the reference
