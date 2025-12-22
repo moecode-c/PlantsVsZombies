@@ -1,4 +1,3 @@
-
 package pvz.model;
 
 import javafx.animation.*;
@@ -103,8 +102,8 @@ public class Yard extends Thread
 		zombies.clear();
 
 		// Level specific stuff
-	   // levelDuration = parentLevel.getDurationInSeconds();
-		timeLeft = initialTimeForLevel(parentLevel.getLevelNumber());
+		timeLeft = infiniteLevel ? Double.POSITIVE_INFINITY : parentLevel.getDurationInSeconds();
+		System.out.println("DEBUG level duration seconds=" + parentLevel.getDurationInSeconds());
 		sunCounter = startingSunCount;
 
 		label = new Label(String.valueOf(sunCounter));
@@ -157,7 +156,10 @@ public class Yard extends Thread
 	}
 
 	private static double initialTimeForLevel(int levelNumber) {
-		return levelNumber == 4 ? Double.POSITIVE_INFINITY : (MINUTES * 60) + PREVIEW_SECONDS;
+		if (levelNumber == 4) {
+			return Double.POSITIVE_INFINITY;
+		}
+		return (MINUTES * 60) + PREVIEW_SECONDS;
 	}
 
 	private Zombie createZombieForLevel(int levelNumber, int x, int y, Random random)
@@ -402,7 +404,9 @@ public class Yard extends Thread
 		gameOn = true;
 		zombieSpawnInterval = initialSpawnIntervalSeconds;
 		sunCounter = startingSunCount;
-		timeLeft = initialTimeForLevel(parentLevel != null ? parentLevel.getLevelNumber() : 1);
+		timeLeft = (parentLevel != null && parentLevel.getLevelNumber() == 4)
+			? Double.POSITIVE_INFINITY
+			: parentLevel != null ? parentLevel.getDurationInSeconds() : initialTimeForLevel(1);
 
 			// Clear all plants and set them inactive
 			plants.forEach(plant -> {
@@ -1083,7 +1087,6 @@ public class Yard extends Thread
 	public void plantPlacedAudio() {
 		try {
 			String path = getClass().getResource("/pvz/music/plant placed.mp3").toExternalForm();
-			System.out.println("Path: " + path);
 			Media media = new Media(path);
 			MediaPlayer mediaPlayer = new MediaPlayer(media);
 			mediaPlayer.setVolume(0.3);

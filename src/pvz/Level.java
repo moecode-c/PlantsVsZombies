@@ -32,10 +32,10 @@ public class Level implements Serializable {
 
     private static int defaultDurationFor(int levelNumber) {
         return switch (levelNumber) {
-            case 2 -> 300; // 5 minutes
-            case 3 -> 360; // 6 minutes
-            case 5 -> 360; // 6 minutes
-            default -> 240; // 4 minutes for level 1 and beyond
+            case 2 -> 150;
+            case 3 -> 160; 
+            case 5 -> 150; 
+            default -> 130; 
         };
     }
 
